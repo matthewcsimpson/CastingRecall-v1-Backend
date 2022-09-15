@@ -13,6 +13,8 @@ app.use(cors());
 const PORT = process.env.SERVER_PORT;
 const API_KEY = process.env.TMDB_API_KEY;
 const TMDB_SEARCH_POP_URL = process.env.TMDB_SEARCH_POP_URL;
+const TMDB_SEARCH_CREDITS_FRONT = process.env.TMDB_SEARCH_CREDITS_FRONT;
+const TMBD_SEARCH_CREDITS_BACK = process.env.TMBD_SEARCH_CREDITS_BACK;
 
 const LOWEST_YEAR = 1990;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -41,21 +43,43 @@ function saveData(data) {
  * Function to generate a puzzle.
  */
 const makePuzzle = () => {
+  // const hold the puzzle
+  const puzzleArray = [];
+
+  // generate a random year
   const randomYear = Math.floor(
     Math.random() * (CURRENT_YEAR - LOWEST_YEAR) + LOWEST_YEAR
   );
 
-  axios
+  // generate a random number
+  const randomPick = Math.floor(Math.random() * 10);
+
+  const firstMovie = axios
     .get(`${TMDB_SEARCH_POP_URL}${randomYear}&api_key=${API_KEY}`)
     .then((res) => {
-      saveData(JSON.stringify(res.data.results));
-      console.log(res.data.results);
+      res.data.results.find((movie, i) => {
+        if (i === randomPick) {
+          return movie;
+        }
+      });
     })
     .catch((e) => console.error(e));
+
+  console.log(firstMovie);
+  console.log(firstMovie);
+  console.log(firstMovie);
 };
 
-app.get("/puzzle", (req, res) => {
+app.get("/generatepuzzle", (req, res) => {
   makePuzzle();
+  res.send("i'm here");
+  // loadData((err, data) => {
+  //   if (err) {
+  //     console.error(e);
+  //   } else {
+  //     res.json(JSON.parse(data));
+  //   }
+  // });
 });
 
 app.listen(PORT, () => {
