@@ -1,6 +1,7 @@
 // libraries
 const axios = require("axios");
 require("dotenv").config();
+const fs = require("fs");
 
 // variables
 const API_KEY = process.env.TMDB_API_KEY;
@@ -12,13 +13,24 @@ const TMDB_DISCOVER_MOVIE_BY_ACTOR = process.env.TMDB_DISCOVER_MOVIE_BY_ACTOR;
 const LOWEST_YEAR = 1990;
 const CURRENT_YEAR = new Date().getFullYear();
 
+const movieArray = [];
+let actorArray = [];
+
+// save the data
+function saveData(data) {
+  let timestamp = Date.now();
+  fs.writeFile(`./data/${timestamp}-game.json`, data, (err) => {
+    if (err) {
+      console.error(err);
+    }
+  });
+}
+
 /**
  * Function to generate a puzzle.
  */
 const makePuzzle = async () => {
   // const hold the puzzle
-  const movieArray = new Array(6).fill(null);
-  let actorArray = [];
 
   // generate a random year
   const randomYear = Math.floor(
@@ -39,21 +51,35 @@ const makePuzzle = async () => {
       });
     })
     .catch((e) => console.error(e));
-  // console.info(keyMovie);
+  console.log(`key movie: ${keyMovie.original_title}`);
   movieArray[0] = keyMovie.id;
 
   // get the first five actors
-  const firstFiveActors = await getFiveActors(keyMovie.id);
-  actorArray = [actorArray, ...firstFiveActors];
+  const firstFiveActors = await getFirstFiveActors(keyMovie.id, actorArray);
+  actorArray = [...actorArray, ...firstFiveActors];
 
-  // get the next movies
-  for (let i = 1; i < movieArray.length; i++) {
-    const randomActor = await getRandomActor(actorArray);
-    console.log(randomActor);
-    // const fiveMovies = await getMovieByActorID(randomActor.id);
+  for (let i = 1; i < 6; i++) {
+    let actor = await getRandomActor(actorArray);
+    console.log(`actor: ${actor.name}`);
+    let movie = await getMovieByActorID(actor.id, movieArray);
+    movieArray.push(movie.id);
+    console.log(`movie: ${movie.original_title}`);
+    let fiveMoreActors = await getFiveActors(movie.id, actorArray);
+    actorArray = [...actorArray, ...fiveMoreActors];
   }
 
+  // // get a random actor
+  // const randomActor = await getRandomActor(actorArray);
+  // console.log(`random actor: ${randomActor.name}`);
+
+  // // get a random movie by that actor
+  // const randomMovie = await getMovieByActorID(randomActor.id, movieArray);
+  // movieArray[1] = randomMovie.id;
+  // console.log(`movie2: ${randomMovie.original_title}`);
+
   const newPuzzle = { movies: movieArray, actors: actorArray };
+
+  saveData(JSON.stringify(newPuzzle));
   return newPuzzle;
 };
 
@@ -62,14 +88,14 @@ const makePuzzle = async () => {
  * @param {string} id
  * @returns
  */
-const getFiveActors = async (id) => {
+const getFirstFiveActors = async (id) => {
   let tempArray = [];
   await axios
     .get(
       `${TMDB_SEARCH_CREDITS_FRONT}${id}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
     )
     .then((res) => {
-      res.data.cast.forEach((actor, i) => {
+      res.data.cast.forEach((actor) => {
         if (actor.order < 5) {
           tempArray.push(actor);
         }
@@ -81,28 +107,72 @@ const getFiveActors = async (id) => {
   return tempArray;
 };
 
-const getRandomActor = async (array) => {
-  let temp = "";
-  console.log(array.length);
-  const randomPick = Math.floor(Math.random() * array.length);
-  console.log(randomPick);
-  const randomActor = array.find((actor, i) => {
-    if (actor && i === randomPick) {
-      // console.log("actor " + actor.name);
-      temp = actor;
-    }
-  });
-  return temp;
+/**
+ * Get five actors, filtering out any already chosen actors.
+ * @param {string} id
+ * @param {array} array
+ */
+const getFiveActors = async (id, array) => {
+  let ids = array.map((item) => item.id);
+  let tempArray = [];
+  let filtered = [];
+
+  await axios
+    .get(
+      `${TMDB_SEARCH_CREDITS_FRONT}${id}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
+    )
+    .then((res) => {
+      filtered = res.data.cast.filter((actor) => !ids.includes(actor.id));
+      for (let i = 0; i < 5; i++) {
+        tempArray.push(filtered[i]);
+      }
+    })
+    .catch((e) => {
+      console.error(e);
+    });
+  return tempArray;
 };
 
-const getMovieByActorID = async (actorId) => {
-  const randomPick = Math.floor(Math.random() * 10);
-  let movieId = "";
+/**
+ * get a random actor from the array
+ * @param {array} array
+ * @returns {object}
+ */
+const getRandomActor = async (array) => {
+  const randomPick = Math.floor(Math.random() * array.length);
+  const randomActor = array.find((actor, i) => {
+    if (actor && i === randomPick) {
+      return actor;
+    }
+  });
+  return randomActor;
+};
+
+/**
+ * Return a random movie from an actors top five most popular
+ * @param {string} actorId
+ */
+const getMovieByActorID = async (actorId, movieIds) => {
+  const randomPicka = Math.floor(Math.random() * 5);
+  let rMovie = {};
+  let filtered = [];
   await axios
-    .get(`${TMDB_DISCOVER_MOVIE_BY_ACTOR}${actorId}&=api_key=${API_KEY}`)
+    .get(`${TMDB_DISCOVER_MOVIE_BY_ACTOR}${actorId}&api_key=${API_KEY}`)
     .then((res) => {
-      console.log(res.data);
+      filtered = res.data.results.filter((movie) => {
+        return !movieIds.includes(movie.id);
+      });
+
+      rMovie = filtered.find((movie, i) => {
+        if (i === randomPicka) {
+          return movie;
+        }
+      });
+    })
+    .catch((e) => {
+      console.error(e);
     });
+  return rMovie;
 };
 
 module.exports = { makePuzzle };
