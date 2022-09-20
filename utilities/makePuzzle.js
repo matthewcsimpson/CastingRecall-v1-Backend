@@ -19,7 +19,7 @@ let actorArray = [];
 // save the data
 function saveData(data) {
   let timestamp = Date.now();
-  fs.writeFile(`./data/${timestamp}-game.json`, data, (err) => {
+  fs.writeFile(`./data/${timestamp}.json`, data, (err) => {
     if (err) {
       console.error(err);
     }
