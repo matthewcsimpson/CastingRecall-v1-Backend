@@ -35,6 +35,10 @@ router.get("/list", (_req, res) => {
   });
 });
 
+router.get("/:puzzleid", (req, res) => {
+  res.send("nothing here yet");
+});
+
 router.get("/", (_req, res) => {
   fs.readdir("./data/", (err, files) => {
     if (err) {
