@@ -2,6 +2,7 @@
 const axios = require("axios");
 require("dotenv").config();
 const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
 
 // variables
 const API_KEY = process.env.TMDB_API_KEY;
@@ -30,8 +31,6 @@ function saveData(data) {
  * Function to generate a puzzle.
  */
 const makePuzzle = async () => {
-  // const hold the puzzle
-
   // generate a random year
   const randomYear = Math.floor(
     Math.random() * (CURRENT_YEAR - LOWEST_YEAR) + LOWEST_YEAR
@@ -44,40 +43,60 @@ const makePuzzle = async () => {
   const keyMovie = await axios
     .get(`${TMDB_SEARCH_POP_URL}${randomYear}&api_key=${API_KEY}`)
     .then((res) => {
-      return res.data.results.find((movie, i) => {
+      let rawResults = res.data.results.filter(
+        (movie) =>
+          !movie.genre_ids.includes(99) && !movie.genre_ids.includes(1077)
+      );
+      return rawResults.find((movie, i) => {
         if (i === randomPick) {
-          return movie;
+          console.log(`movie.id: ${movie.id}`);
+          return movie.id;
         }
       });
     })
     .catch((e) => console.error(e));
   console.log(`key movie: ${keyMovie.original_title}`);
-  movieArray[0] = keyMovie.id;
+  movieArray.push(keyMovie.id);
 
   // get the first five actors
   const firstFiveActors = await getFirstFiveActors(keyMovie.id, actorArray);
   actorArray = [...actorArray, ...firstFiveActors];
 
   for (let i = 1; i < 6; i++) {
+    // get an actor from the array
     let actor = await getRandomActor(actorArray);
-    console.log(`actor: ${actor.name}`);
+    await console.log(`actor: ${actor.name}`);
+    // get a movie by that actor
     let movie = await getMovieByActorID(actor.id, movieArray);
-    movieArray.push(movie.id);
-    console.log(`movie: ${movie.original_title}`);
+
+    // check the movie returned
+    if (movie) {
+      // if the movie returned, push the ID in to the array
+      movieArray.push(movie.id);
+    } else {
+      // if the movie did not return, filter out the previously chosen actor and search for a new one
+      let tempActors = actorArray.filter(
+        (tempActor) => tempActor.id !== actor.id
+      );
+      let newActor = await getRandomActor(tempActors);
+      // get a new movie
+      movie = await getMovieByActorID(newActor.id, movieArray);
+    }
+    await console.log(`movie: ${movie.original_title}`);
+    //load five actors from the chosen movie
     let fiveMoreActors = await getFiveActors(movie.id, actorArray);
+    // spread the new ive actors into the existing array of actors
     actorArray = [...actorArray, ...fiveMoreActors];
   }
 
-  // // get a random actor
-  // const randomActor = await getRandomActor(actorArray);
-  // console.log(`random actor: ${randomActor.name}`);
-
-  // // get a random movie by that actor
-  // const randomMovie = await getMovieByActorID(randomActor.id, movieArray);
-  // movieArray[1] = randomMovie.id;
-  // console.log(`movie2: ${randomMovie.original_title}`);
-
-  const newPuzzle = { movies: movieArray, actors: actorArray };
+  let count = 0;
+  actorArray.forEach((actor) => (actor === null ? "" : count++));
+  console.log(`count: ${count}`);
+  const newPuzzle = {
+    puzzleId: uuidv4(),
+    movies: movieArray,
+    actors: actorArray,
+  };
 
   saveData(JSON.stringify(newPuzzle));
   return newPuzzle;
@@ -112,25 +131,29 @@ const getFirstFiveActors = async (id) => {
  * @param {string} id
  * @param {array} array
  */
-const getFiveActors = async (id, array) => {
-  let ids = array.map((item) => item.id);
-  let tempArray = [];
-  let filtered = [];
-
-  await axios
-    .get(
-      `${TMDB_SEARCH_CREDITS_FRONT}${id}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
-    )
-    .then((res) => {
-      filtered = res.data.cast.filter((actor) => !ids.includes(actor.id));
-      for (let i = 0; i < 5; i++) {
-        tempArray.push(filtered[i]);
-      }
-    })
-    .catch((e) => {
-      console.error(e);
+const getFiveActors = async (movieId, arrayOfActors) => {
+  if (movieId && arrayOfActors) {
+    let ids = arrayOfActors.map((actor) => {
+      return actor.id;
     });
-  return tempArray;
+    let tempArray = [];
+    let filtered = [];
+
+    await axios
+      .get(
+        `${TMDB_SEARCH_CREDITS_FRONT}${movieId}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
+      )
+      .then((res) => {
+        filtered = res.data.cast.filter((actor) => !ids.includes(actor.id));
+        for (let i = 0; i < 5; i++) {
+          tempArray.push(filtered[i]);
+        }
+      })
+      .catch((e) => {
+        console.error(e);
+      });
+    return tempArray;
+  }
 };
 
 /**
@@ -139,13 +162,15 @@ const getFiveActors = async (id, array) => {
  * @returns {object}
  */
 const getRandomActor = async (array) => {
-  const randomPick = Math.floor(Math.random() * array.length);
-  const randomActor = array.find((actor, i) => {
-    if (actor && i === randomPick) {
-      return actor;
-    }
-  });
-  return randomActor;
+  if (array) {
+    const randomPick = Math.floor(Math.random() * array.length);
+    const randomActor = array.find((actor, i) => {
+      if (actor && i === randomPick) {
+        return actor;
+      }
+    });
+    return randomActor;
+  }
 };
 
 /**
@@ -153,26 +178,32 @@ const getRandomActor = async (array) => {
  * @param {string} actorId
  */
 const getMovieByActorID = async (actorId, movieIds) => {
-  const randomPicka = Math.floor(Math.random() * 5);
-  let rMovie = {};
-  let filtered = [];
-  await axios
-    .get(`${TMDB_DISCOVER_MOVIE_BY_ACTOR}${actorId}&api_key=${API_KEY}`)
-    .then((res) => {
-      filtered = res.data.results.filter((movie) => {
-        return !movieIds.includes(movie.id);
-      });
+  if (actorId && movieIds) {
+    const randomPicka = Math.floor(Math.random() * 5);
+    let rMovie = {};
+    let filtered = [];
+    await axios
+      .get(`${TMDB_DISCOVER_MOVIE_BY_ACTOR}${actorId}&api_key=${API_KEY}`)
+      .then((res) => {
+        filtered = res.data.results.filter((movie) => {
+          return (
+            !movieIds.includes(movie.id) &&
+            !movie.genre_ids.includes(99) &&
+            !movie.genre_ids.includes(1077)
+          );
+        });
 
-      rMovie = filtered.find((movie, i) => {
-        if (i === randomPicka) {
-          return movie;
-        }
+        rMovie = filtered.find((movie, i) => {
+          if (i === randomPicka) {
+            return movie;
+          }
+        });
+      })
+      .catch((e) => {
+        console.error(e);
       });
-    })
-    .catch((e) => {
-      console.error(e);
-    });
-  return rMovie;
+    return rMovie;
+  }
 };
 
 module.exports = { makePuzzle };
