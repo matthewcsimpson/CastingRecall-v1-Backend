@@ -33,3 +33,19 @@ const newPuzzle = {
   movies: movieArray,
   actors: actorArray,
 };
+
+let actor = getRandomActor(tempArray[i - 1].cast);
+let movie = await axios
+  .get(`${TMDB_SEARCH_POP_URL}${randomYear}&api_key=${API_KEY}`)
+  .then((res) => {
+    let rawResults = res.data.results.filter(
+      (movie) =>
+        !movie.genre_ids.includes(99) && !movie.genre_ids.includes(1077)
+    );
+    return rawResults.find((movie, i) => {
+      if (i === randomPick) {
+        return movie;
+      }
+    });
+  })
+  .catch((e) => console.error(e));
