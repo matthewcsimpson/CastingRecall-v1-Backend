@@ -14,7 +14,7 @@ const puzzlerouter = require("./routes/puzzles");
 
 // middleware
 app.use((req, res, next) => {
-  console.log(`incoming request at ${req.originalUrl}`);
+  console.log(`${Date.now()}incoming request at ${req.originalUrl}`);
   next();
 });
 
