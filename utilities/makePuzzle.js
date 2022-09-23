@@ -67,7 +67,7 @@ const makePuzzle = async () => {
       // get the cast of that movie
       let cast = await getFirstFiveActors(movie.id);
       // select a key cast member to select the next movie with
-      let keyCast = getRandomActor(cast);
+      let keyCast = await getRandomActor(cast);
       // assemble the object
       movie = { ...movie, cast: cast, keyPerson: keyCast };
       // push the object into the array
@@ -82,7 +82,7 @@ const makePuzzle = async () => {
       // get the cast of that movie
       let newCast = await getFiveActors(newMovie.id, prevMovie.cast);
       // select a new key cast person
-      let newKeyCast = getRandomActor(newCast);
+      let newKeyCast = await getRandomActor(newCast);
       // assemble the object
       newMovie = { ...newMovie, cast: newCast, keyPerson: newKeyCast };
       // push the object to the array
@@ -158,7 +158,7 @@ const getFiveActors = async (movieId, arrayOfActors) => {
  * @param {array} array
  * @returns {object}
  */
-const getRandomActor = (array) => {
+const getRandomActor = async (array) => {
   if (array) {
     const randomPick = Math.floor(Math.random() * array.length);
     const randomActor = array.find((actor, i) => {
