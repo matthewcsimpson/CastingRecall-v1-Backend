@@ -6,6 +6,8 @@ const { v4: uuidv4 } = require("uuid");
 
 // variables
 const API_KEY = process.env.TMDB_API_KEY;
+const TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV =
+  process.env.TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV;
 const TMDB_SEARCH_POP_URL = process.env.TMDB_SEARCH_POP_URL;
 const TMDB_SEARCH_CREDITS_FRONT = process.env.TMDB_SEARCH_CREDITS_FRONT;
 const TMBD_SEARCH_CREDITS_BACK = process.env.TMBD_SEARCH_CREDITS_BACK;
@@ -51,7 +53,9 @@ const makePuzzle = async () => {
     if (tempArray.length === 0) {
       // pick a random top ten movie from a random year > 1990
       let movie = await axios
-        .get(`${TMDB_SEARCH_POP_URL}${randomYear}&api_key=${API_KEY}`)
+        .get(
+          `${TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV}${randomYear}&api_key=${API_KEY}`
+        )
         .then((res) => {
           let rawResults = res.data.results.filter(
             (movie) =>
@@ -178,7 +182,7 @@ const getMovieByActorID = async (actorId, movies) => {
   if (actorId && movies) {
     let movieIds = movies.map((movie) => movie.id);
 
-    const randomPicka = Math.floor(Math.random() * 5);
+    const randomPicka = Math.floor(Math.random() * 10);
     let rMovie = {};
     let filtered = [];
     await axios
