@@ -32,21 +32,15 @@ function saveData(data) {
  * Function to generate a puzzle.
  */
 const makePuzzle = async () => {
-  // get the first five actors
-  // const firstFiveActors = await getFirstFiveActors(keyMovie.id, actorArray);
-  // const cast = { cast: firstFiveActors };
-  // keyMovie = { ...keyMovie, ...cast, keymovie: true };
-  // movieArray.push(keyMovie);
-  // console.log(movieArray);
-
   // generate a random year
   const randomYear = Math.floor(
     Math.random() * (CURRENT_YEAR - LOWEST_YEAR) + LOWEST_YEAR
   );
+  console.info(`seed year: ${randomYear}`);
 
   // generate a random number
   const randomPick = Math.floor(Math.random() * 10);
-
+  console.info(`random number: ${randomPick}`);
   let tempArray = [];
 
   for (let i = 0; i < 6; i++) {
@@ -61,8 +55,10 @@ const makePuzzle = async () => {
             (movie) =>
               !movie.genre_ids.includes(99) && !movie.genre_ids.includes(1077)
           );
+
           return rawResults.find((movie, i) => {
             if (i === randomPick) {
+              console.info(`movie: ${movie.original_title}`);
               return movie;
             }
           });
@@ -70,8 +66,10 @@ const makePuzzle = async () => {
         .catch((e) => console.error(e));
       // get the cast of that movie
       let cast = await getFirstFiveActors(movie.id);
+      cast.forEach((p) => console.info(p.name));
       // select a key cast member to select the next movie with
       let keyCast = await getRandomActor(cast);
+      console.info(`key person: ${keyCast.name}`);
       // assemble the object
       movie = { ...movie, cast: cast, keyPerson: keyCast };
       // push the object into the array
