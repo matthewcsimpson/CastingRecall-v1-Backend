@@ -36,7 +36,23 @@ router.get("/list", (_req, res) => {
 });
 
 router.get("/:puzzleid", (req, res) => {
-  res.send("nothing here yet");
+  const { puzzleid } = req.params;
+
+  fs.readdir("./data/", (err, files) => {
+    if (err) {
+      console.error(err);
+    } else {
+      files.forEach((file) => {
+        loadData(`./data/${file}`, (err, data) => {
+          let tempdata = JSON.parse(data);
+          // console.log(tempdata.puzzleId);
+          if (tempdata.puzzleId === puzzleid) {
+            res.json(tempdata);
+          }
+        });
+      });
+    }
+  });
 });
 
 router.get("/", (_req, res) => {
