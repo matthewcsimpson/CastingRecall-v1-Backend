@@ -58,7 +58,7 @@ const makePuzzle = async () => {
 
           return rawResults.find((movie, i) => {
             if (i === randomPick) {
-              console.info(`movie: ${movie.original_title}`);
+              console.info(`first movie: ${movie.original_title}`);
               return movie;
             }
           });
@@ -81,10 +81,13 @@ const makePuzzle = async () => {
       let prevKeyActor = prevMovie.keyPerson;
       // select a new movie using the key cast member
       let newMovie = await getMovieByActorID(prevKeyActor.id, tempArray);
+      console.info(newMovie.original_title);
       // get the cast of that movie
       let newCast = await getFiveActors(newMovie.id, prevMovie.cast);
+      newCast.forEach((p) => console.info(p.name));
       // select a new key cast person
       let newKeyCast = await getRandomActor(newCast);
+      console.log(`key person: ${newKeyCast.name}`);
       // assemble the object
       newMovie = { ...newMovie, cast: newCast, keyPerson: newKeyCast };
       // push the object to the array
@@ -99,6 +102,15 @@ const makePuzzle = async () => {
 
   saveData(JSON.stringify(newPuzzle));
   return newPuzzle;
+};
+
+/**
+ * Generate a random number up to the specified number
+ * @param {number} num
+ * @returns
+ */
+const getRandomNumberUpToInt = (num) => {
+  return Math.floor(Math.random() * num);
 };
 
 /**
@@ -145,7 +157,11 @@ const getFiveActors = async (movieId, arrayOfActors) => {
       .then((res) => {
         filtered = res.data.cast.filter((actor) => !ids.includes(actor.id));
         for (let i = 0; i < 5; i++) {
-          tempArray.push(filtered[i]);
+          if (filtered[i] !== null) {
+            tempArray.push(filtered[i]);
+          } else {
+            tempArray.push(null);
+          }
         }
       })
       .catch((e) => {
@@ -180,7 +196,7 @@ const getMovieByActorID = async (actorId, movies) => {
   if (actorId && movies) {
     let movieIds = movies.map((movie) => movie.id);
 
-    const randomPicka = Math.floor(Math.random() * 10);
+    let randomPick = 0;
     let rMovie = {};
     let filtered = [];
     await axios
@@ -194,8 +210,14 @@ const getMovieByActorID = async (actorId, movies) => {
           );
         });
 
+        if (filtered.length < 5) {
+          randomPick = getRandomNumberUpToInt(filtered.length);
+        } else {
+          randomPick = getRandomNumberUpToInt(5);
+        }
+
         rMovie = filtered.find((movie, i) => {
-          if (i === randomPicka) {
+          if (i === randomPick) {
             return movie;
           }
         });
