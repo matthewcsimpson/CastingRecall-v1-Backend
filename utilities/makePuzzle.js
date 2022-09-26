@@ -19,9 +19,9 @@ const CURRENT_YEAR = new Date().getFullYear();
 const movieArray = [];
 
 // save the data
-function saveData(data) {
-  let timestamp = Date.now();
-  fs.writeFile(`./data/${timestamp}.json`, data, (err) => {
+function saveData(data, filename) {
+  // let timestamp = Date.now();
+  fs.writeFile(`./data/${filename}.json`, data, (err) => {
     if (err) {
       console.error(err);
     }
@@ -94,13 +94,13 @@ const makePuzzle = async () => {
       tempArray.push(newMovie);
     }
   }
-
+  const uid = uuidv4();
   const newPuzzle = {
-    puzzleId: uuidv4(),
+    puzzleId: uid,
     puzzle: tempArray,
   };
 
-  saveData(JSON.stringify(newPuzzle));
+  saveData(JSON.stringify(newPuzzle), uid);
   return newPuzzle;
 };
 
@@ -229,4 +229,9 @@ const getMovieByActorID = async (actorId, movies) => {
   }
 };
 
-module.exports = { makePuzzle };
+const trimFileNameFromString = (string) => {
+  const substrings = string.split(".");
+  return substrings[0];
+};
+
+module.exports = { makePuzzle, trimFileNameFromString };

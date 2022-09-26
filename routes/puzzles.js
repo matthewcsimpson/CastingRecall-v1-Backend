@@ -4,7 +4,10 @@ const router = express.Router();
 router.use(express.json());
 
 // imports
-const { makePuzzle } = require("../utilities/makePuzzle");
+const {
+  makePuzzle,
+  trimFileNameFromString,
+} = require("../utilities/makePuzzle");
 
 /**
  * Function to read the INVENTORY JSON file.
@@ -30,7 +33,11 @@ router.get("/list", (_req, res) => {
     if (err) {
       console.error(err);
     } else {
-      res.json(files);
+      const formattedStrings = [];
+      files.map((string) =>
+        formattedStrings.push(trimFileNameFromString(string))
+      );
+      res.json(formattedStrings);
     }
   });
 });
@@ -45,7 +52,7 @@ router.get("/:puzzleid", (req, res) => {
       files.forEach((file) => {
         loadData(`./data/${file}`, (err, data) => {
           let tempdata = JSON.parse(data);
-          // console.log(tempdata.puzzleId);
+
           if (tempdata.puzzleId === puzzleid) {
             res.json(tempdata);
           }
