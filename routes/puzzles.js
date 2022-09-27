@@ -44,7 +44,6 @@ router.get("/list", (_req, res) => {
 
 router.get("/:puzzleid", (req, res) => {
   const { puzzleid } = req.params;
-
   fs.readdir("./data/", (err, files) => {
     if (err) {
       console.error(err);
@@ -52,9 +51,10 @@ router.get("/:puzzleid", (req, res) => {
       files.forEach((file) => {
         loadData(`./data/${file}`, (err, data) => {
           let tempdata = JSON.parse(data);
+          console.log(typeof tempdata["puzzleId"]);
 
-          if (tempdata.puzzleId === puzzleid) {
-            res.json(tempdata);
+          if (parseInt(puzzleid) === tempdata["puzzleId"]) {
+            res.status(200).json(tempdata);
           }
         });
       });

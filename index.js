@@ -11,10 +11,16 @@ app.use(cors());
 // variables
 const PORT = process.env.SERVER_PORT;
 const puzzlerouter = require("./routes/puzzles");
+const dateOptions = {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+};
 
 // middleware
-app.use((req, res, next) => {
-  console.log(`${Date.now()}incoming request at ${req.originalUrl}`);
+app.use((req, _res, next) => {
+  let now = Date.now();
+  console.log(`${now.toLocaleString()} incoming request at ${req.originalUrl}`);
   next();
 });
 

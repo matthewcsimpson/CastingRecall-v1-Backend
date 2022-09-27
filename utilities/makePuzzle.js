@@ -94,13 +94,13 @@ const makePuzzle = async () => {
       tempArray.push(newMovie);
     }
   }
-  const uid = uuidv4();
+  const timestamp = Date.now();
   const newPuzzle = {
-    puzzleId: uid,
+    puzzleId: timestamp,
     puzzle: tempArray,
   };
 
-  saveData(JSON.stringify(newPuzzle), uid);
+  saveData(JSON.stringify(newPuzzle), timestamp);
   return newPuzzle;
 };
 
