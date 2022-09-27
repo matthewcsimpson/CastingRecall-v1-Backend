@@ -26,6 +26,11 @@ app.use((req, _res, next) => {
 
 app.use("/puzzle", puzzlerouter);
 
+app.get("/", (req, res) => {
+  res.writeHead(301, { Location: "http://" + req.headers["host"] + "/puzzle" });
+  return res.end();
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
