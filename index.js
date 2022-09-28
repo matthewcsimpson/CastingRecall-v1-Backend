@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(cors());
 
 // variables
-const PORT = process.env.SERVER_PORT;
+const PORT = process.env.PORT || 8080;
 const puzzlerouter = require("./routes/puzzles");
 
 // middleware
