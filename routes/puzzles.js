@@ -84,14 +84,18 @@ router.get("/", (_req, res) => {
     if (err) {
       console.error(err);
     } else {
-      loadData(`./data/${files[files.length - 1]}`, (err, data) => {
-        if (err) {
-          console.error(err);
-        } else {
-          const puzzle = JSON.parse(data);
-          res.status(200).json(puzzle);
-        }
-      });
+      if (files) {
+        loadData(`./data/${files[files.length - 1]}`, (err, data) => {
+          if (err) {
+            console.error(err);
+          } else {
+            const puzzle = JSON.parse(data);
+            res.status(200).json(puzzle);
+          }
+        });
+      } else {
+        res.status(204).send("no puzzles available");
+      }
     }
   });
 });
