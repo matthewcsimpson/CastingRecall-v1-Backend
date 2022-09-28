@@ -42,6 +42,23 @@ router.get("/list", (_req, res) => {
   });
 });
 
+router.get("/latest", (_req, res) => {
+  fs.readdir("./data/", (err, files) => {
+    if (err) {
+      console.error(err);
+    } else {
+      loadData(`./data/${files[files.length - 1]}`, (err, data) => {
+        if (err) {
+          console.error(err);
+        } else {
+          const puzzle = JSON.parse(data);
+          res.status(200).json(puzzle);
+        }
+      });
+    }
+  });
+});
+
 router.get("/:puzzleid", (req, res) => {
   const { puzzleid } = req.params;
   fs.readdir("./data/", (err, files) => {
