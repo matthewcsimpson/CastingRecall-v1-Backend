@@ -1,5 +1,6 @@
 // libraries
 const axios = require("axios");
+const e = require("cors");
 require("dotenv").config();
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
@@ -66,12 +67,22 @@ const makePuzzle = async () => {
         .catch((e) => console.error(e));
       // get the cast of that movie
       let cast = await getFirstFiveActors(movie.id);
-      cast.forEach((p) => console.info(p.name));
+      cast.forEach((p) => p && console.info("actor", p.name));
+      // get the director(s) of that movie
+      let directors = await getDirector(movie.id);
+      directors.forEach((p) => {
+        console.log("director", p.name);
+      });
       // select a key cast member to select the next movie with
       let keyCast = await getRandomActor(cast);
       console.info(`key person: ${keyCast.name}`);
       // assemble the object
-      movie = { ...movie, cast: cast, keyPerson: keyCast };
+      movie = {
+        ...movie,
+        cast: cast,
+        directors: directors,
+        keyPerson: keyCast,
+      };
       // push the object into the array
       tempArray.push(movie);
     } else {
@@ -81,15 +92,32 @@ const makePuzzle = async () => {
       let prevKeyActor = prevMovie.keyPerson;
       // select a new movie using the key cast member
       let newMovie = await getMovieByActorID(prevKeyActor.id, tempArray);
-      console.info(newMovie.original_title);
+      if (newMovie) {
+        console.info("movie", newMovie.original_title);
+      } else {
+        console.log("|------ looking for alternate person");
+        let newNewKeyActor = await getRandomActor(newPrevCast.cast);
+        newMovie = await getMovieByActorID(newNewKeyActor.id, tempArray);
+      }
+
       // get the cast of that movie
       let newCast = await getFiveActors(newMovie.id, prevMovie.cast);
-      newCast.forEach((p) => console.info(p.name));
+      newCast.forEach((p) => p && console.info("actor", p.name));
+      // get the director(s) of that movie
+      let directors = await getDirector(newMovie.id);
+      directors.forEach((p) => {
+        console.log("director", p.name);
+      });
       // select a new key cast person
       let newKeyCast = await getRandomActor(newCast);
       console.log(`key person: ${newKeyCast.name}`);
       // assemble the object
-      newMovie = { ...newMovie, cast: newCast, keyPerson: newKeyCast };
+      newMovie = {
+        ...newMovie,
+        cast: newCast,
+        directors: directors,
+        keyPerson: newKeyCast,
+      };
       // push the object to the array
       tempArray.push(newMovie);
     }
@@ -147,7 +175,7 @@ const getFiveActors = async (movieId, arrayOfActors) => {
     let ids = arrayOfActors.map((actor) => {
       return actor.id;
     });
-    let tempArray = [];
+    let actors = [];
     let filtered = [];
 
     await axios
@@ -158,16 +186,16 @@ const getFiveActors = async (movieId, arrayOfActors) => {
         filtered = res.data.cast.filter((actor) => !ids.includes(actor.id));
         for (let i = 0; i < 5; i++) {
           if (filtered[i] !== null) {
-            tempArray.push(filtered[i]);
+            actors.push(filtered[i]);
           } else {
-            tempArray.push(null);
+            actors.push(null);
           }
         }
       })
       .catch((e) => {
         console.error(e);
       });
-    return tempArray;
+    return actors;
   }
 };
 
@@ -185,6 +213,33 @@ const getRandomActor = async (array) => {
       }
     });
     return randomActor;
+  }
+};
+
+const getDirector = async (movieId) => {
+  if (movieId) {
+    let directors = [];
+    let filtered = [];
+    await axios
+      .get(
+        `${TMDB_SEARCH_CREDITS_FRONT}${movieId}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
+      )
+      .then((res) => {
+        filtered = res.data.crew.filter(
+          (crew) => crew.job.toLowerCase() === "director"
+        );
+        for (let i = 0; i < filtered.length; i++) {
+          if (filtered[i] !== null) {
+            directors.push(filtered[i]);
+          } else {
+            directors.push(null);
+          }
+        }
+      })
+      .catch((e) => {
+        console.error(e);
+      });
+    return directors;
   }
 };
 
@@ -229,6 +284,11 @@ const getMovieByActorID = async (actorId, movies) => {
   }
 };
 
+/**
+ * Trim a string.
+ * @param {*} string
+ * @returns
+ */
 const trimFileNameFromString = (string) => {
   const substrings = string.split(".");
   return substrings[0];
