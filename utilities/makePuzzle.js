@@ -37,11 +37,9 @@ const makePuzzle = async () => {
   const randomYear = Math.floor(
     Math.random() * (CURRENT_YEAR - LOWEST_YEAR) + LOWEST_YEAR
   );
-  console.info(`seed year: ${randomYear}`);
 
   // generate a random number
   const randomPick = Math.floor(Math.random() * 10);
-  console.info(`random number: ${randomPick}`);
   let tempArray = [];
 
   for (let i = 0; i < 6; i++) {
@@ -59,7 +57,6 @@ const makePuzzle = async () => {
 
           return rawResults.find((movie, i) => {
             if (i === randomPick) {
-              console.info(`first movie: ${movie.original_title}`);
               return movie;
             }
           });
@@ -67,15 +64,10 @@ const makePuzzle = async () => {
         .catch((e) => console.error(e));
       // get the cast of that movie
       let cast = await getFirstFiveActors(movie.id);
-      cast.forEach((p) => p && console.info("actor", p.name));
       // get the director(s) of that movie
       let directors = await getDirector(movie.id);
-      directors.forEach((p) => {
-        console.log("director", p.name);
-      });
       // select a key cast member to select the next movie with
       let keyCast = await getRandomActor(cast);
-      console.info(`key person: ${keyCast.name}`);
       // assemble the object
       movie = {
         ...movie,
@@ -95,22 +87,15 @@ const makePuzzle = async () => {
       if (newMovie) {
         console.info("movie", newMovie.original_title);
       } else {
-        console.log("|------ looking for alternate person");
         let newNewKeyActor = await getRandomActor(newPrevCast.cast);
         newMovie = await getMovieByActorID(newNewKeyActor.id, tempArray);
       }
-
       // get the cast of that movie
       let newCast = await getFiveActors(newMovie.id, prevMovie.cast);
-      newCast.forEach((p) => p && console.info("actor", p.name));
       // get the director(s) of that movie
       let directors = await getDirector(newMovie.id);
-      directors.forEach((p) => {
-        console.log("director", p.name);
-      });
       // select a new key cast person
       let newKeyCast = await getRandomActor(newCast);
-      console.log(`key person: ${newKeyCast.name}`);
       // assemble the object
       newMovie = {
         ...newMovie,
