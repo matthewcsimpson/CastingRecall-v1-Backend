@@ -13,16 +13,44 @@ This API server genrates the key to each puzzle by querying The Movie Database u
 7. Repeat until the total number of movies is 6. 
 
 
-
-
-
 ## Related
 
 Here are some related projects
 
 [Casting ReCall - React Front End](https://github.com/matthewcsimpson/castingrecall)
 
+## API Reference
 
+This project is currently deployed at <http://casting-recall-api.herokuapp.com/>
+
+#### Get latest puzzle
+
+```http
+  GET /puzzle
+```
+
+#### Get list of puzzles
+
+```http
+  GET /puzzle/list
+```
+
+#### Get a specific puzzle 
+
+```http
+  GET /puzzle/:puzzleid
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `puzzleid`| `number` | **Required**. Id of item to fetch |
+
+
+#### Generate a new puzzle 
+
+```http
+  GET /puzzle/generate
+```
 ## Technology & Dependancies 
 
 This project was created using the following. 
