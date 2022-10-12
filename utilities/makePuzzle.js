@@ -13,7 +13,6 @@ const TMDB_SEARCH_POP_URL = process.env.TMDB_SEARCH_POP_URL;
 const TMDB_SEARCH_CREDITS_FRONT = process.env.TMDB_SEARCH_CREDITS_FRONT;
 const TMBD_SEARCH_CREDITS_BACK = process.env.TMBD_SEARCH_CREDITS_BACK;
 const TMDB_DISCOVER_MOVIE_BY_ACTOR = process.env.TMDB_DISCOVER_MOVIE_BY_ACTOR;
-
 const LOWEST_YEAR = 1990;
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -38,30 +37,13 @@ const makePuzzle = async () => {
     Math.random() * (CURRENT_YEAR - LOWEST_YEAR) + LOWEST_YEAR
   );
 
-  // generate a random number
-  const randomPick = Math.floor(Math.random() * 10);
+  // temp array to create the puzzle with
   let tempArray = [];
 
   for (let i = 0; i < 6; i++) {
     if (tempArray.length === 0) {
       // pick a random top ten movie from a random year > 1990
-      let movie = await axios
-        .get(
-          `${TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV}${randomYear}&api_key=${API_KEY}`
-        )
-        .then((res) => {
-          let rawResults = res.data.results.filter(
-            (movie) =>
-              !movie.genre_ids.includes(99) && !movie.genre_ids.includes(1077)
-          );
-
-          return rawResults.find((movie, i) => {
-            if (i === randomPick) {
-              return movie;
-            }
-          });
-        })
-        .catch((e) => console.error(e));
+      let movie = await getMovieFromRandomYear(randomYear);
       // get the cast of that movie
       let cast = await getFirstFiveActors(movie.id);
       // get the director(s) of that movie
@@ -84,9 +66,7 @@ const makePuzzle = async () => {
       let prevKeyActor = prevMovie.keyPerson;
       // select a new movie using the key cast member
       let newMovie = await getMovieByActorID(prevKeyActor.id, tempArray);
-      if (newMovie) {
-        console.info("movie", newMovie.original_title);
-      } else {
+      if (!newMovie) {
         let newNewKeyActor = await getRandomActor(newPrevCast.cast);
         newMovie = await getMovieByActorID(newNewKeyActor.id, tempArray);
       }
@@ -114,22 +94,49 @@ const makePuzzle = async () => {
   };
 
   saveData(JSON.stringify(newPuzzle), timestamp);
+  console.info("puzzle made");
   return newPuzzle;
 };
 
 /**
  * Generate a random number up to the specified number
  * @param {number} num
- * @returns
+ * @returns {number}
  */
 const getRandomNumberUpToInt = (num) => {
   return Math.floor(Math.random() * num);
 };
 
 /**
+ * Pick one of the top films from a supplied year
+ * @param {number} year
+ * @returns {object} movie
+ */
+const getMovieFromRandomYear = async (year) => {
+  // generate a random number
+  const randomPick = Math.floor(Math.random() * 10);
+
+  const movie = await axios
+    .get(`${TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV}${year}&api_key=${API_KEY}`)
+    .then((res) => {
+      let rawResults = res.data.results.filter(
+        (movie) =>
+          !movie.genre_ids.includes(99) && !movie.genre_ids.includes(1077)
+      );
+      return rawResults.find((movie, i) => {
+        if (i === randomPick) {
+          return movie;
+        }
+      });
+    })
+    .catch((e) => console.error(e));
+  return movie;
+};
+
+/**
  * Get five movies from one actor
  * @param {string} id
- * @returns
+ * @returns {array} movies
  */
 const getFirstFiveActors = async (id) => {
   let tempArray = [];
@@ -154,6 +161,7 @@ const getFirstFiveActors = async (id) => {
  * Get five actors, filtering out any already chosen actors.
  * @param {string} id
  * @param {array} array
+ * @returns {array} actors
  */
 const getFiveActors = async (movieId, arrayOfActors) => {
   if (movieId && arrayOfActors) {
@@ -187,7 +195,7 @@ const getFiveActors = async (movieId, arrayOfActors) => {
 /**
  * get a random actor from the array
  * @param {array} array
- * @returns {object}
+ * @returns {object} random actor
  */
 const getRandomActor = async (array) => {
   if (array) {
@@ -201,6 +209,11 @@ const getRandomActor = async (array) => {
   }
 };
 
+/**
+ * Get the director of the specified movie.
+ * @param {number} movieId
+ * @returns {object} director
+ */
 const getDirector = async (movieId) => {
   if (movieId) {
     let directors = [];
@@ -231,6 +244,7 @@ const getDirector = async (movieId) => {
 /**
  * Return a random movie from an actors top five most popular
  * @param {string} actorId
+ * @returns {object} movie
  */
 const getMovieByActorID = async (actorId, movies) => {
   if (actorId && movies) {
@@ -272,7 +286,7 @@ const getMovieByActorID = async (actorId, movies) => {
 /**
  * Trim a string.
  * @param {*} string
- * @returns
+ * @returns {string} truncated string
  */
 const trimFileNameFromString = (string) => {
   const substrings = string.split(".");
