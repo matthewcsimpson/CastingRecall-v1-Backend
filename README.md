@@ -17,7 +17,7 @@ This API server genrates the key to each puzzle by querying The Movie Database u
 
 Here are some related projects
 
-[Casting ReCall - React Front End](https://github.com/matthewcsimpson/castingrecall)
+[Casting ReCall - React Front End](https://github.com/matthewcsimpson/castingrecall-frontend)
 
 ## API Reference
 
