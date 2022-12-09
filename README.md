@@ -21,8 +21,6 @@ Here are some related projects
 
 ## API Reference
 
-This project is currently deployed at <http://casting-recall-api.herokuapp.com/>
-
 #### Get latest puzzle
 
 ```http
