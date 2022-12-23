@@ -9,95 +9,36 @@ const {
   trimFileNameFromString,
 } = require("../utilities/makePuzzle");
 
-/**
- * Function to read the INVENTORY JSON file.
- * @param {function} callback
- */
-function loadData(location, callback) {
-  fs.readFile(location, "utf8", callback);
-}
+const {
+  generatePuzzle,
+  listPuzzles,
+  getLatestPuzzle,
+  getPuzzleById,
+} = require("../controllers/puzzleContoller");
 
 /**
  * Generate a new puzzle.
  */
-router.get("/generate", async (_req, res) => {
-  await makePuzzle();
-  res.send("puzzle made!");
-});
+router.route("/generate").get(generatePuzzle);
 
 /**
  * Return a list of available puzzles
  */
-router.get("/list", (_req, res) => {
-  fs.readdir("./data/", (err, files) => {
-    if (err) {
-      console.error(err);
-    } else {
-      const formattedStrings = [];
-      files.map((string) =>
-        formattedStrings.push(trimFileNameFromString(string))
-      );
-      res.json(formattedStrings);
-    }
-  });
-});
+router.route("/list").get(listPuzzles);
 
-router.get("/latest", (_req, res) => {
-  fs.readdir("./data/", (err, files) => {
-    if (err) {
-      console.error(err);
-    } else {
-      loadData(`./data/${files[files.length - 1]}`, (err, data) => {
-        if (err) {
-          console.error(err);
-        } else {
-          const puzzle = JSON.parse(data);
-          res.status(200).json(puzzle);
-        }
-      });
-    }
-  });
-});
+/**
+ * Return the latest puzzle.
+ */
+router.route("/latest").get(getLatestPuzzle);
 
-router.get("/:puzzleid", (req, res) => {
-  const { puzzleid } = req.params;
-  fs.readdir("./data/", (err, files) => {
-    if (err) {
-      console.error(err);
-    } else {
-      files.forEach((file) => {
-        loadData(`./data/${file}`, (err, data) => {
-          let tempdata = JSON.parse(data);
-          console.log(typeof tempdata["puzzleId"]);
+/**
+ * Return a specific puzzle but its puzzle id.
+ */
+router.route("/:puzzleid").get(getPuzzleById);
 
-          if (parseInt(puzzleid) === tempdata["puzzleId"]) {
-            res.status(200).json(tempdata);
-          }
-        });
-      });
-    }
-  });
-});
-
-router.get("/", (_req, res) => {
-  fs.readdir("./data/", (err, files) => {
-    if (err) {
-      console.error(err);
-    } else {
-      if (files) {
-        loadData(`./data/${files[files.length - 1]}`, (err, data) => {
-          if (err) {
-            console.error(err);
-          } else {
-            const puzzle = JSON.parse(data);
-            res.status(200).json(puzzle);
-          }
-        });
-      } else {
-        res.status(204).send("no puzzles available");
-      }
-    }
-  });
-});
+/**
+ * Return the latest puzzle.
+ */
+router.route("/").get(getLatestPuzzle);
 
 module.exports = router;

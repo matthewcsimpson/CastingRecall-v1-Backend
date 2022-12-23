@@ -18,18 +18,11 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 const movieArray = [];
 
-// save the data
-function saveData(data, filename) {
-  // let timestamp = Date.now();
-  fs.writeFile(`./data/${filename}.json`, data, (err) => {
-    if (err) {
-      console.error(err);
-    }
-  });
-}
+const { saveData } = require("../utilities/readWrite");
 
 /**
  * Function to generate a puzzle.
+ * @returns {object} puzzle
  */
 const makePuzzle = async () => {
   // generate a random year
@@ -283,14 +276,4 @@ const getMovieByActorID = async (actorId, movies) => {
   }
 };
 
-/**
- * Trim a string.
- * @param {*} string
- * @returns {string} truncated string
- */
-const trimFileNameFromString = (string) => {
-  const substrings = string.split(".");
-  return substrings[0];
-};
-
-module.exports = { makePuzzle, trimFileNameFromString };
+module.exports = { makePuzzle };
