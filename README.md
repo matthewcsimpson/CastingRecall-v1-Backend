@@ -24,19 +24,19 @@ Here are some related projects
 
 #### Get latest puzzle
 
-```http
+```
   GET /puzzle
 ```
 
 #### Get list of puzzles
 
-```http
+```
   GET /puzzle/list
 ```
 
 #### Get a specific puzzle
 
-```http
+```
   GET /puzzle/:puzzleid
 ```
 
@@ -46,7 +46,7 @@ Here are some related projects
 
 #### Generate a new puzzle
 
-```http
+```
   GET /puzzle/generate
 ```
 
@@ -66,19 +66,15 @@ To run this project, you will need to add the following environment variables to
 
 You will need to provide a TMDB API key.
 
-`TMDB_API_KEY`=`{YOUR API KEY GOES HERE}`
-
-`TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV`=`"https://api.themoviedb.org/4/discover/movie?with_original_language=en&sort_by=revenue.desc&region=US&primary_release_year="`
-
-`TMDB_SEARCH_POP_URL`=`"https://api.themoviedb.org/3/movie/popular?with_original_language=en&primary_release_year="`
-
-`TMDB_SEARCH_CREDITS_FRONT`=`"https://api.themoviedb.org/3/movie/"`
-
-`TMBD_SEARCH_CREDITS_BACK`=`"/credits"`
-
-`TMDB_DISCOVER_MOVIE_BY_ACTOR`=`"https://api.themoviedb.org/3/discover/movie?sort_by=revenue.desc&region=US&with_original_language=en&with_cast="`
-
-`SERVER_PORT` = `{PORT NUMBER HERE}`
+```
+TMDB_API_KEY={YOUR API KEY GOES HERE}
+TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV="https://api.themoviedb.org/4/discover/movie?with_original_language=en&sort_by=revenue.desc&region=US&primary_release_year="
+TMDB_SEARCH_POP_URL="https://api.themoviedb.org/3/movie/popular?with_original_language=en&primary_release_year="
+TMDB_SEARCH_CREDITS_FRONT="https://api.themoviedb.org/3/movie/"
+TMBD_SEARCH_CREDITS_BACK="/credits"
+TMDB_DISCOVER_MOVIE_BY_ACTOR="https://api.themoviedb.org/3/discover/movie?sort_by=revenue.desc&region=US&with_original_language=en&with_cast="`
+SERVER_PORT={PORT NUMBER HERE}
+```
 
 ## Author
 
