@@ -1,4 +1,4 @@
-# CastingRecall - API Server
+## CastingRecall - v1 - Back End
 
 Casting ReCall is a movie based guessing game in which the player attempts to geuss the titles of six movies baed on the cast list.
 This API server genrates the key to each puzzle by querying The Movie Database using the following sequence:
@@ -14,11 +14,7 @@ This API server genrates the key to each puzzle by querying The Movie Database u
 This project is currently deployed at <http://casting-recall-api.herokuapp.com/>
 Give the game a try at <https://castingrecall.herokuapp.com>
 
-## Related
-
-Here are some related projects
-
-[Casting ReCall - React Front End](https://github.com/matthewcsimpson/castingrecall-frontend)
+_Be sure to check out the front end repo: [Casting ReCall - React Front End](https://github.com/matthewcsimpson/castingrecall-frontend)._
 
 ## API Reference
 
