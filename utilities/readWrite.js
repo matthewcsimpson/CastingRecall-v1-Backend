@@ -1,12 +1,13 @@
-const fs = require("fs");
+const fs = require("fs/promises");
+const path = require("path");
 
 /**
  * Function to read the INVENTORY JSON file.
  * @param {string} location
  * @param {function} callback
  */
-exports.loadFile = (location, callback) => {
-  fs.readFile(location, "utf8", callback);
+exports.loadFile = async (location) => {
+  return fs.readFile(location, "utf8");
 };
 
 /**
@@ -14,8 +15,8 @@ exports.loadFile = (location, callback) => {
  * @param {string} location
  * @param {function} callback
  */
-exports.loadDir = (location, callback) => {
-  fs.readdir(location, "utf8", callback);
+exports.loadDir = async (location) => {
+  return fs.readdir(location, "utf8");
 };
 
 /**
@@ -23,13 +24,9 @@ exports.loadDir = (location, callback) => {
  * @param {string} data
  * @param {string} filename
  */
-exports.saveData = (data, filename) => {
-  // let timestamp = Date.now();
-  fs.writeFile(`./data/${filename}.json`, data, (err) => {
-    if (err) {
-      console.error(err);
-    }
-  });
+exports.saveData = async (data, filename, directory = "./data") => {
+  const filePath = path.join(directory, `${filename}.json`);
+  await fs.writeFile(filePath, data);
 };
 
 /**
@@ -37,7 +34,6 @@ exports.saveData = (data, filename) => {
  * @param {*} string
  * @returns {string} truncated string
  */
-exports.trimFileNameFromString = (string) => {
-  const substrings = string.split(".");
-  return substrings[0];
+exports.trimFileNameFromString = (input) => {
+  return path.parse(input ?? "").name;
 };
