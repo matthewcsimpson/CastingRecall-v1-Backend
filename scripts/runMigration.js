@@ -1,0 +1,70 @@
+const fs = require("fs/promises");
+const path = require("path");
+const { withClient } = require("../utilities/db");
+require("dotenv").config();
+
+
+const MIGRATIONS_DIR = path.resolve(__dirname, "../migrations");
+
+const ensureMigrationsTable = async (client) => {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id SERIAL PRIMARY KEY,
+      file_name TEXT NOT NULL UNIQUE,
+      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+};
+
+const loadAppliedMigrations = async (client) => {
+  const result = await client.query("SELECT file_name FROM schema_migrations");
+  return new Set(result.rows.map((row) => row.file_name));
+};
+
+const applyMigration = async (client, fileName, sql) => {
+  await client.query("BEGIN");
+  try {
+    await client.query(sql);
+    await client.query(
+      "INSERT INTO schema_migrations (file_name) VALUES ($1)",
+      [fileName]
+    );
+    await client.query("COMMIT");
+    console.info(`Applied migration: ${fileName}`);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
+};
+
+const run = async () => {
+  try {
+    const files = await fs.readdir(MIGRATIONS_DIR);
+    const migrations = files.filter((file) => file.endsWith(".sql")).sort();
+
+    if (!migrations.length) {
+      console.info("No migrations found");
+      return;
+    }
+
+    await withClient(async (client) => {
+      await ensureMigrationsTable(client);
+      const applied = await loadAppliedMigrations(client);
+
+      for (const fileName of migrations) {
+        if (applied.has(fileName)) {
+          continue;
+        }
+
+        const filePath = path.join(MIGRATIONS_DIR, fileName);
+        const sql = await fs.readFile(filePath, "utf8");
+        await applyMigration(client, fileName, sql);
+      }
+    });
+  } catch (error) {
+    console.error("Migration failed", error);
+    process.exitCode = 1;
+  }
+};
+
+run();

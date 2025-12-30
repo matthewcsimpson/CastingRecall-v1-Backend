@@ -1,0 +1,121 @@
+const { query } = require("../utilities/db");
+
+/**
+ * Map a database row to a puzzle object.
+ * @param {*} row
+ * @returns
+ */
+const mapPuzzleRow = (row) => {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    puzzleId: Number(row.puzzle_id),
+    puzzle: (() => {
+      if (typeof row.puzzle === "string") {
+        if (!row.puzzle.length) {
+          return [];
+        }
+        try {
+          return JSON.parse(row.puzzle);
+        } catch (error) {
+          console.error("Unable to parse stored puzzle JSON", error);
+          return [];
+        }
+      }
+      return row.puzzle || [];
+    })(),
+    keyPeople: Array.isArray(row.key_people) ? row.key_people : [],
+    createdAt: row.created_at,
+  };
+};
+
+/**
+ * Insert or update a puzzle record.
+ * @param {*} param0
+ */
+const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
+  const serializedPuzzle = JSON.stringify(puzzle ?? []);
+  const normalizedKeyPeople = Array.isArray(keyPeople) ? keyPeople : [];
+
+  await query(
+    `
+      INSERT INTO puzzles (puzzle_id, puzzle, key_people)
+      VALUES ($1, $2::jsonb, $3::text[])
+      ON CONFLICT (puzzle_id)
+      DO UPDATE SET puzzle = EXCLUDED.puzzle, key_people = EXCLUDED.key_people
+    `,
+    [puzzleId, serializedPuzzle, normalizedKeyPeople]
+  );
+};
+
+/**
+ * List puzzles with their IDs and key people.
+ * @returns
+ */
+const listPuzzlesFromDb = async () => {
+  const result = await query(
+    `
+      SELECT puzzle_id, key_people
+      FROM puzzles
+      ORDER BY created_at DESC
+    `
+  );
+
+  return result.rows.map((row) => ({
+    puzzleId: Number(row.puzzle_id),
+    keyPeople: Array.isArray(row.key_people) ? row.key_people : [],
+  }));
+};
+
+/**
+ * Get the most recently created puzzle.
+ * @returns
+ */
+const getLatestPuzzleFromDb = async () => {
+  const result = await query(
+    `
+      SELECT puzzle_id, puzzle, key_people, created_at
+      FROM puzzles
+      ORDER BY created_at DESC
+      LIMIT 1
+    `
+  );
+
+  if (!result.rows.length) {
+    return null;
+  }
+
+  return mapPuzzleRow(result.rows[0]);
+};
+
+/**
+ * Get a puzzle by its ID.
+ * @param {*} puzzleId
+ * @returns
+ */
+const getPuzzleByIdFromDb = async (puzzleId) => {
+  const result = await query(
+    `
+      SELECT puzzle_id, puzzle, key_people, created_at
+      FROM puzzles
+      WHERE puzzle_id = $1
+      LIMIT 1
+    `,
+    [puzzleId]
+  );
+
+  if (!result.rows.length) {
+    return null;
+  }
+
+  return mapPuzzleRow(result.rows[0]);
+};
+
+module.exports = {
+  insertPuzzleToDb,
+  listPuzzlesFromDb,
+  getLatestPuzzleFromDb,
+  getPuzzleByIdFromDb,
+};

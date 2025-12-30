@@ -1,13 +1,6 @@
 const express = require("express");
-const fs = require("fs");
 const router = express.Router();
 router.use(express.json());
-
-// imports
-const {
-  makePuzzle,
-  trimFileNameFromString,
-} = require("../utilities/makePuzzle");
 
 const {
   generatePuzzle,

@@ -16,6 +16,28 @@ Give the game a try at <https://castingrecall.herokuapp.com>
 
 _Be sure to check out the front end repo: [Casting ReCall - React Front End](https://github.com/matthewcsimpson/castingrecall-frontend)._
 
+## Local Setup
+
+1. Install dependencies with npm install.
+2. Copy .env and provide TMDB credentials plus DATABASE_URL (example: postgres://matthewsimpson@localhost:5432/casting_recall).
+3. Run npm run migrate to apply database migrations.
+4. Optionally run npm run seed to load the sample JSON puzzles into Postgres.
+5. Start the server with npm run dev or npm start.
+
+## Database Management
+
+- Migrations live in the migrations directory and execute in filename order through scripts/runMigration.js.
+- The migration runner records applied files in schema_migrations to support repeatable deployments.
+- The seed script reads JSON files from data and upserts them into the puzzles table for local testing.
+- To reset the local database quickly, issue TRUNCATE TABLE puzzles RESTART IDENTITY;
+
+## Deployment Notes
+
+- Provision Postgres on Heroku with heroku addons:create heroku-postgresql:hobby-dev.
+- Confirm that the Heroku config var DATABASE_URL is present (Heroku supplies this automatically when the addon is created).
+- Run migrations by executing heroku run npm run migrate.
+- Optionally hydrate production with historical puzzles by running heroku run npm run seed after uploading JSON files or generating new ones.
+
 ## API Reference
 
 #### Get latest puzzle
