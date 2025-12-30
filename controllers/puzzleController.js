@@ -1,5 +1,3 @@
-require("dotenv").config();
-
 const { makePuzzle } = require("../utilities/makePuzzle");
 const { normalizePuzzle } = require("../utilities/puzzleFormatter");
 const {
@@ -22,13 +20,15 @@ exports.generatePuzzle = async (req, res) => {
     return res.status(500).json({ message: "Puzzle generation disabled" });
   }
 
-  const { key } = req.query;
+  const authHeader = req.get("authorization");
 
-  if (!key) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(403).json({ message: "Missing generation key" });
   }
 
-  if (key !== generationKey) {
+  const suppliedKey = authHeader.substring("Bearer ".length).trim();
+
+  if (!suppliedKey || suppliedKey !== generationKey) {
     return res.status(403).json({ message: "Invalid generation key" });
   }
 
