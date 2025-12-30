@@ -17,7 +17,7 @@ exports.generatePuzzle = async (req, res) => {
 
   if (!generationKey) {
     console.error("---> generatePuzzle: GENERATION_KEY not configured");
-    return res.status(500).json({ message: "Puzzle generation disabled" });
+    return res.status(500).json({ message: "Puzzle generation unavailable" });
   }
 
   const authHeader = req.get("authorization");
@@ -28,7 +28,7 @@ exports.generatePuzzle = async (req, res) => {
 
   const suppliedKey = authHeader.substring("Bearer ".length).trim();
 
-  if (!suppliedKey || suppliedKey !== generationKey) {
+  if (suppliedKey !== generationKey) {
     return res.status(403).json({ message: "Invalid generation key" });
   }
 
