@@ -3,7 +3,7 @@
 Casting ReCall is a movie based guessing game in which the player attempts to geuss the titles of six movies baed on the cast list.
 This API server genrates the key to each puzzle by querying The Movie Database using the following sequence:
 
-1. Chose a random year between 1990 and now.
+1. Chose a random year between 1980 and now.
 2. Get one of the most popular movies from that year.
 3. Load five actors from that movie.
 4. Randomly choose an actor from the previously loaded.
@@ -44,12 +44,6 @@ Here are some related projects
 | :--------- | :------- | :-------------------------------- |
 | `puzzleid` | `number` | **Required**. Id of item to fetch |
 
-#### Generate a new puzzle
-
-```
-  GET /puzzle/generate
-```
-
 ## Technology & Dependancies
 
 This project was created using the following.
@@ -58,23 +52,9 @@ This project was created using the following.
 <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/express/express-original-wordmark.svg" alt="express" width="40" height="40" />
 <img src="https://www.vectorlogo.zone/logos/heroku/heroku-icon.svg" alt="heroku" width="40" height="40" />
 
-Make sure to run `npm install`!
+## License
 
-## Environment Variables
-
-To run this project, you will need to add the following environment variables to your .env file.
-
-You will need to provide a TMDB API key.
-
-```
-TMDB_API_KEY={YOUR API KEY GOES HERE}
-TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV="https://api.themoviedb.org/4/discover/movie?with_original_language=en&sort_by=revenue.desc&region=US&primary_release_year="
-TMDB_SEARCH_POP_URL="https://api.themoviedb.org/3/movie/popular?with_original_language=en&primary_release_year="
-TMDB_SEARCH_CREDITS_FRONT="https://api.themoviedb.org/3/movie/"
-TMBD_SEARCH_CREDITS_BACK="/credits"
-TMDB_DISCOVER_MOVIE_BY_ACTOR="https://api.themoviedb.org/3/discover/movie?sort_by=revenue.desc&region=US&with_original_language=en&with_cast="`
-SERVER_PORT={PORT NUMBER HERE}
-```
+This project is available under the MIT License. See [LICENSE](LICENSE).
 
 ## Author
 
