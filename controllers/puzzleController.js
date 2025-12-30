@@ -1,6 +1,11 @@
-const fs = require("fs/promises");
 const { makePuzzle } = require("../utilities/makePuzzle");
 const { normalizePuzzle } = require("../utilities/puzzleFormatter");
+const {
+  insertPuzzleToDb,
+  listPuzzlesFromDb,
+  getLatestPuzzleFromDb,
+  getPuzzleByIdFromDb,
+} = require("../repositories/puzzleRepository");
 
 /**
  * Endpoint controller to generate a new puzzle.
@@ -9,7 +14,12 @@ const { normalizePuzzle } = require("../utilities/puzzleFormatter");
  */
 exports.generatePuzzle = async (_req, res) => {
   try {
-    await makePuzzle();
+    const puzzle = await makePuzzle();
+    await insertPuzzleToDb({
+      puzzleId: puzzle.puzzleId,
+      puzzle: puzzle.puzzle,
+      keyPeople: puzzle.keyPeople,
+    });
     return res.send("puzzle made!");
   } catch (err) {
     if (err?.isExternalServiceError) {
@@ -28,39 +38,8 @@ exports.generatePuzzle = async (_req, res) => {
  */
 exports.listPuzzles = async (_req, res) => {
   try {
-    const files = await fs.readdir("./data", { encoding: "utf8" });
-
-    const summaries = await Promise.all(
-      files
-        .filter((file) => file.endsWith(".json"))
-        .sort()
-        .map(async (file) => {
-          try {
-            const data = await fs.readFile(`./data/${file}`, "utf8");
-            const parsed = JSON.parse(data);
-            const normalized = normalizePuzzle(parsed);
-
-            if (!normalized || !normalized.puzzleId) {
-              return null;
-            }
-
-            const keyPeople = Array.isArray(normalized.keyPeople)
-              ? normalized.keyPeople.map((name) => name ?? "")
-              : [];
-
-            return {
-              puzzleId: normalized.puzzleId,
-              keyPeople,
-            };
-          } catch (error) {
-            console.error("---> listPuzzles: unable to parse", file, error);
-            return null;
-          }
-        })
-    );
-
-    const filteredSummaries = summaries.filter(Boolean);
-    return res.status(200).json(filteredSummaries);
+    const summaries = await listPuzzlesFromDb();
+    return res.status(200).json(summaries);
   } catch (err) {
     console.error("---> listPuzzles: ", err);
     return res.status(500).json({ message: "Unable to list puzzles" });
@@ -74,15 +53,17 @@ exports.listPuzzles = async (_req, res) => {
  */
 exports.getLatestPuzzle = async (_req, res) => {
   try {
-    const files = await fs.readdir("./data/", { encoding: "utf8" });
-    if (!files || files.length === 0) {
+    const latest = await getLatestPuzzleFromDb();
+
+    if (!latest) {
       return res.status(204).send("no puzzles available");
     }
 
-    const sortedFiles = files.sort();
-    const latestFile = sortedFiles[sortedFiles.length - 1];
-    const data = await fs.readFile(`./data/${latestFile}`, "utf8");
-    const puzzle = normalizePuzzle(JSON.parse(data));
+    const puzzle = normalizePuzzle({
+      puzzleId: latest.puzzleId,
+      puzzle: latest.puzzle,
+      keyPeople: latest.keyPeople,
+    });
 
     if (!puzzle) {
       return res.status(500).json({ message: "Stored puzzle is invalid" });
@@ -108,11 +89,18 @@ exports.getPuzzleById = async (req, res) => {
     return res.status(400).json({ message: "Invalid puzzle id" });
   }
 
-  const filePath = `./data/${puzzleId}.json`;
-
   try {
-    const data = await fs.readFile(filePath, "utf8");
-    const puzzle = normalizePuzzle(JSON.parse(data));
+    const record = await getPuzzleByIdFromDb(puzzleId);
+
+    if (!record) {
+      return res.status(404).json({ message: "Puzzle not found" });
+    }
+
+    const puzzle = normalizePuzzle({
+      puzzleId: record.puzzleId,
+      puzzle: record.puzzle,
+      keyPeople: record.keyPeople,
+    });
 
     if (!puzzle) {
       return res.status(500).json({ message: "Stored puzzle is invalid" });
@@ -120,10 +108,6 @@ exports.getPuzzleById = async (req, res) => {
 
     return res.status(200).json(puzzle);
   } catch (err) {
-    if (err.code === "ENOENT") {
-      return res.status(404).json({ message: "Puzzle not found" });
-    }
-
     console.error("---> getPuzzleById: ", err);
     return res.status(500).json({ message: "Unable to load puzzle" });
   }
