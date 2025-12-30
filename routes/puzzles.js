@@ -12,7 +12,7 @@ const {
 /**
  * Generate a new puzzle.
  */
-router.route("/generate").get(generatePuzzle);
+router.route("/generate").post(generatePuzzle);
 
 /**
  * Return a list of available puzzles

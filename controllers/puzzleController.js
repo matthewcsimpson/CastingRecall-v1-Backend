@@ -12,7 +12,26 @@ const {
  * @param {object} req
  * @param {object} res
  */
-exports.generatePuzzle = async (_req, res) => {
+exports.generatePuzzle = async (req, res) => {
+  const generationKey = process.env.GENERATION_KEY;
+
+  if (!generationKey) {
+    console.error("---> generatePuzzle: GENERATION_KEY not configured");
+    return res.status(500).json({ message: "Puzzle generation unavailable" });
+  }
+
+  const authHeader = req.get("authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(403).json({ message: "Missing generation key" });
+  }
+
+  const suppliedKey = authHeader.substring("Bearer ".length).trim();
+
+  if (suppliedKey !== generationKey) {
+    return res.status(403).json({ message: "Invalid generation key" });
+  }
+
   try {
     const puzzle = await makePuzzle();
     await insertPuzzleToDb({
