@@ -1,6 +1,6 @@
 const fs = require("fs/promises");
 const path = require("path");
-const { withClient } = require("../utilities/db");
+const { withClient, initializePool, closePool } = require("../utilities/db");
 require("dotenv").config();
 
 const MIGRATIONS_DIR = path.resolve(__dirname, "../migrations");
@@ -45,7 +45,10 @@ const applyMigration = async (client, fileName, sql) => {
 };
 
 const run = async () => {
+  let exitCode = 0;
+
   try {
+    await initializePool();
     const files = await fs.readdir(MIGRATIONS_DIR);
     const migrations = files.filter((file) => file.endsWith(".sql")).sort();
 
@@ -70,7 +73,16 @@ const run = async () => {
     });
   } catch (error) {
     console.error("Migration failed", error);
-    process.exit(1);
+    exitCode = 1;
+  } finally {
+    try {
+      await closePool();
+    } catch (closeError) {
+      console.error("Failed to close database pool", closeError);
+      exitCode = 1;
+    }
+
+    process.exit(exitCode);
   }
 };
 

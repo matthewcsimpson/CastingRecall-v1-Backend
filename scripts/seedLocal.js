@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const { insertPuzzleToDb } = require("../repositories/puzzleRepository");
+const { initializePool, closePool } = require("../utilities/db");
 const { normalizePuzzle } = require("../utilities/puzzleFormatter");
 
 const DATA_DIR = path.resolve(__dirname, "../data");
@@ -25,7 +26,11 @@ const loadPuzzle = async (fileName) => {
 };
 
 const seed = async () => {
+  let exitCode = 0;
+
   try {
+    await initializePool();
+
     const files = await readPuzzleFiles();
 
     if (!files.length) {
@@ -54,7 +59,16 @@ const seed = async () => {
     }
   } catch (error) {
     console.error("Seeding failed", error);
-    process.exit(1);
+    exitCode = 1;
+  } finally {
+    try {
+      await closePool();
+    } catch (closeError) {
+      console.error("Failed to close database pool", closeError);
+      exitCode = 1;
+    }
+
+    process.exit(exitCode);
   }
 };
 
