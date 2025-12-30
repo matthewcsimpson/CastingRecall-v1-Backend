@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const { initializePool, closePool } = require("./utilities/db");
 const app = express();
 
 app.use(express.json());
@@ -25,6 +26,48 @@ app.get("/", (req, res) => {
   return res.end();
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+let server;
+let isShuttingDown = false;
+
+const startServer = async () => {
+  try {
+    await initializePool();
+    server = app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to initialize database pool", error);
+    process.exit(1);
+  }
+};
+
+const shutdown = async (signal) => {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log(`Received ${signal}. Shutting down gracefully.`);
+
+  const finalize = async (err) => {
+    await closePool();
+    process.exit(err ? 1 : 0);
+  };
+
+  if (server) {
+    server.close(async (err) => {
+      if (err) {
+        console.error("Error closing HTTP server", err);
+      }
+      await finalize(err);
+    });
+  } else {
+    await finalize();
+  }
+};
+
+["SIGTERM", "SIGINT"].forEach((signal) => {
+  process.on(signal, () => shutdown(signal));
 });
+
+startServer();

@@ -3,7 +3,6 @@ const path = require("path");
 const { withClient } = require("../utilities/db");
 require("dotenv").config();
 
-
 const MIGRATIONS_DIR = path.resolve(__dirname, "../migrations");
 
 const ensureMigrationsTable = async (client) => {
@@ -22,6 +21,7 @@ const loadAppliedMigrations = async (client) => {
 };
 
 const applyMigration = async (client, fileName, sql) => {
+  let committed = false;
   await client.query("BEGIN");
   try {
     await client.query(sql);
@@ -30,9 +30,16 @@ const applyMigration = async (client, fileName, sql) => {
       [fileName]
     );
     await client.query("COMMIT");
+    committed = true;
     console.info(`Applied migration: ${fileName}`);
   } catch (error) {
-    await client.query("ROLLBACK");
+    if (!committed) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Failed to rollback migration", rollbackError);
+      }
+    }
     throw error;
   }
 };
@@ -63,7 +70,7 @@ const run = async () => {
     });
   } catch (error) {
     console.error("Migration failed", error);
-    process.exitCode = 1;
+    process.exit(1);
   }
 };
 

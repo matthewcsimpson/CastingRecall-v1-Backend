@@ -3,6 +3,28 @@ const { Pool } = require("pg");
 
 let pool = null;
 
+/**
+ * Close the PostgreSQL pool.
+ * @returns
+ */
+const closePool = async () => {
+  if (!pool) {
+    return;
+  }
+
+  try {
+    await pool.end();
+  } catch (error) {
+    console.error("Error shutting down PostgreSQL pool", error);
+  } finally {
+    pool = null;
+  }
+};
+
+/**
+ * Build the PostgreSQL pool configuration.
+ * @returns
+ */
 const buildPoolConfig = () => {
   const connectionString = process.env.DATABASE_URL;
 
@@ -23,22 +45,56 @@ const buildPoolConfig = () => {
   return config;
 };
 
-const getPool = () => {
-  if (!pool) {
-    pool = new Pool(buildPoolConfig());
+/**
+ * Create a new PostgreSQL pool.
+ * @returns
+ */
+const createPool = () => {
+  const newPool = new Pool(buildPoolConfig());
 
-    pool.on("error", (err) => {
-      console.error("Unexpected PostgreSQL client error", err);
-    });
+  newPool.on("error", (err) => {
+    console.error("Unexpected PostgreSQL client error", err);
+  });
+
+  return newPool;
+};
+
+/**
+ * Get the PostgreSQL pool.
+ * @returns
+ */
+const initializePool = async () => {
+  if (!pool) {
+    pool = createPool();
+    await pool.query("SELECT 1");
   }
 
   return pool;
 };
 
+/**
+ * Get the PostgreSQL pool.
+ * @returns
+ */
+const getPool = () => {
+  if (!pool) {
+    pool = createPool();
+  }
+
+  return pool;
+};
+
+/**
+ * Execute a query against the PostgreSQL database.
+ * @param {*} text
+ * @param {*} params
+ * @returns
+ */
 const query = (text, params) => {
   return getPool().query(text, params);
 };
 
+/** */
 const withClient = async (callback) => {
   const client = await getPool().connect();
   try {
@@ -52,4 +108,6 @@ module.exports = {
   getPool,
   query,
   withClient,
+  closePool,
+  initializePool,
 };

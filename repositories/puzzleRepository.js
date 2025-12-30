@@ -39,15 +39,24 @@ const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
   const serializedPuzzle = JSON.stringify(puzzle ?? []);
   const normalizedKeyPeople = Array.isArray(keyPeople) ? keyPeople : [];
 
-  await query(
-    `
-      INSERT INTO puzzles (puzzle_id, puzzle, key_people)
-      VALUES ($1, $2::jsonb, $3::text[])
-      ON CONFLICT (puzzle_id)
-      DO UPDATE SET puzzle = EXCLUDED.puzzle, key_people = EXCLUDED.key_people
-    `,
-    [puzzleId, serializedPuzzle, normalizedKeyPeople]
-  );
+  try {
+    await query(
+      `
+        INSERT INTO puzzles (puzzle_id, puzzle, key_people)
+        VALUES ($1, $2::jsonb, $3::text[])
+        ON CONFLICT (puzzle_id)
+        DO UPDATE SET puzzle = EXCLUDED.puzzle, key_people = EXCLUDED.key_people
+      `,
+      [puzzleId, serializedPuzzle, normalizedKeyPeople]
+    );
+  } catch (error) {
+    console.error("Failed to persist puzzle", {
+      puzzleId,
+      keyPeople: normalizedKeyPeople,
+      error,
+    });
+    throw error;
+  }
 };
 
 /**
