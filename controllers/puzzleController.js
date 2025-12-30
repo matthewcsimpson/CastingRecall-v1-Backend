@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const { makePuzzle } = require("../utilities/makePuzzle");
 const { normalizePuzzle } = require("../utilities/puzzleFormatter");
 const {
@@ -12,7 +14,24 @@ const {
  * @param {object} req
  * @param {object} res
  */
-exports.generatePuzzle = async (_req, res) => {
+exports.generatePuzzle = async (req, res) => {
+  const generationKey = process.env.GENERATION_KEY;
+
+  if (!generationKey) {
+    console.error("---> generatePuzzle: GENERATION_KEY not configured");
+    return res.status(500).json({ message: "Puzzle generation disabled" });
+  }
+
+  const { key } = req.query;
+
+  if (!key) {
+    return res.status(403).json({ message: "Missing generation key" });
+  }
+
+  if (key !== generationKey) {
+    return res.status(403).json({ message: "Invalid generation key" });
+  }
+
   try {
     const puzzle = await makePuzzle();
     await insertPuzzleToDb({
