@@ -1,278 +1,360 @@
-// libraries
 const axios = require("axios");
-const e = require("cors");
 require("dotenv").config();
-const fs = require("fs");
-const { v4: uuidv4 } = require("uuid");
 
-// variables
 const API_KEY = process.env.TMDB_API_KEY;
 const TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV =
   process.env.TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV;
-const TMDB_SEARCH_POP_URL = process.env.TMDB_SEARCH_POP_URL;
 const TMDB_SEARCH_CREDITS_FRONT = process.env.TMDB_SEARCH_CREDITS_FRONT;
 const TMBD_SEARCH_CREDITS_BACK = process.env.TMBD_SEARCH_CREDITS_BACK;
 const TMDB_DISCOVER_MOVIE_BY_ACTOR = process.env.TMDB_DISCOVER_MOVIE_BY_ACTOR;
-const LOWEST_YEAR = 1990;
+
+const parseNumberWithDefault = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const LOWEST_YEAR = parseNumberWithDefault(process.env.LOWEST_YEAR, 1990);
+const MAX_RETRIES = parseNumberWithDefault(process.env.MAX_RETRIES, 2);
+const RETRY_DELAY_MS = parseNumberWithDefault(process.env.RETRY_DELAY_MS, 300);
+const CREDITS_CACHE_MAX = parseNumberWithDefault(
+  process.env.CREDITS_CACHE_MAX,
+  100
+);
+
 const CURRENT_YEAR = new Date().getFullYear();
 
-const movieArray = [];
-
 const { saveData } = require("../utilities/readWrite");
+const { buildNormalizedMovie } = require("./puzzleFormatter");
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// In-memory cache for movie credits
+const creditsCache = new Map();
+
+// Build TMDB credits URL
+const buildCreditsUrl = (movieId) =>
+  `${TMDB_SEARCH_CREDITS_FRONT}${movieId}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`;
 
 /**
- * Function to generate a puzzle.
- * @returns {object} puzzle
+ * Create a standardized external service error.
+ * @param {*} message
+ * @param {*} cause
+ * @returns
  */
-const makePuzzle = async () => {
-  // generate a random year
-  const randomYear = Math.floor(
-    Math.random() * (CURRENT_YEAR - LOWEST_YEAR) + LOWEST_YEAR
-  );
-
-  // temp array to create the puzzle with
-  let tempArray = [];
-
-  for (let i = 0; i < 6; i++) {
-    if (tempArray.length === 0) {
-      // pick a random top ten movie from a random year > 1990
-      let movie = await getMovieFromRandomYear(randomYear);
-      // get the cast of that movie
-      let cast = await getFirstFiveActors(movie.id);
-      // get the director(s) of that movie
-      let directors = await getDirector(movie.id);
-      // select a key cast member to select the next movie with
-      let keyCast = await getRandomActor(cast);
-      // assemble the object
-      movie = {
-        ...movie,
-        cast: cast,
-        directors: directors,
-        keyPerson: keyCast,
-      };
-      // push the object into the array
-      tempArray.push(movie);
-    } else {
-      // select the previous movie in the array
-      let prevMovie = tempArray[i - 1];
-      // select the previously selected key cast member
-      let prevKeyActor = prevMovie.keyPerson;
-      // select a new movie using the key cast member
-      let newMovie = await getMovieByActorID(prevKeyActor.id, tempArray);
-      if (!newMovie) {
-        let newNewKeyActor = await getRandomActor(newPrevCast.cast);
-        newMovie = await getMovieByActorID(newNewKeyActor.id, tempArray);
-      }
-      // get the cast of that movie
-      let newCast = await getFiveActors(newMovie.id, prevMovie.cast);
-      // get the director(s) of that movie
-      let directors = await getDirector(newMovie.id);
-      // select a new key cast person
-      let newKeyCast = await getRandomActor(newCast);
-      // assemble the object
-      newMovie = {
-        ...newMovie,
-        cast: newCast,
-        directors: directors,
-        keyPerson: newKeyCast,
-      };
-      // push the object to the array
-      tempArray.push(newMovie);
-    }
+const createExternalServiceError = (message, cause) => {
+  const error = new Error(message);
+  error.name = "ExternalServiceError";
+  error.statusCode = 502;
+  error.isExternalServiceError = true;
+  if (cause) {
+    error.cause = cause;
   }
-  const timestamp = Date.now();
-  const newPuzzle = {
-    puzzleId: timestamp,
-    puzzle: tempArray,
-  };
-
-  saveData(JSON.stringify(newPuzzle), timestamp);
-  console.info("puzzle made");
-  return newPuzzle;
+  return error;
 };
 
 /**
- * Generate a random number up to the specified number
- * @param {number} num
- * @returns {number}
+ * Fetch with retry logic for transient errors.
+ * @param {*} url
+ * @param {*} retries
+ * @returns
+ */
+const fetchWithRetry = async (url, retries = MAX_RETRIES) => {
+  let attempt = 0;
+
+  while (attempt <= retries) {
+    try {
+      return await axios.get(url);
+    } catch (error) {
+      const status = error?.response?.status;
+
+      if (status === 404) {
+        throw createExternalServiceError("TMDB resource not found", error);
+      }
+
+      if (attempt >= retries || (status && status < 500)) {
+        if (status === 429) {
+          error.rateLimitReset =
+            error?.response?.headers?.["retry-after"] || null;
+        }
+        throw error;
+      }
+
+      attempt += 1;
+      const backoffDelay = RETRY_DELAY_MS * 2 ** (attempt - 1);
+      await delay(backoffDelay);
+    }
+  }
+};
+
+/**
+ * Get movie credits, utilizing in-memory caching.
+ * @param {*} movieId
+ * @returns
+ */
+const getCredits = async (movieId) => {
+  if (!movieId) {
+    return { cast: [], crew: [] };
+  }
+
+  if (creditsCache.has(movieId)) {
+    const cached = creditsCache.get(movieId);
+    creditsCache.delete(movieId);
+    creditsCache.set(movieId, cached);
+    return cached;
+  }
+
+  const response = await fetchWithRetry(buildCreditsUrl(movieId));
+  const credits = response?.data ?? { cast: [], crew: [] };
+  if (creditsCache.size >= CREDITS_CACHE_MAX) {
+    const oldestKey = creditsCache.keys().next().value;
+    creditsCache.delete(oldestKey);
+  }
+  creditsCache.set(movieId, credits);
+  return credits;
+};
+
+/**
+ * Get a random integer from 0 up to (but not including) the specified number.
+ * @param {*} num
+ * @returns
  */
 const getRandomNumberUpToInt = (num) => {
+  if (!Number.isFinite(num) || num <= 0) {
+    return 0;
+  }
+
   return Math.floor(Math.random() * num);
 };
 
 /**
- * Pick one of the top films from a supplied year
- * @param {number} year
- * @returns {object} movie
+ * Get a random actor from the provided array.
+ * @param {*} actors
+ * @returns
+ */
+const getRandomActor = (actors) => {
+  if (!Array.isArray(actors) || actors.length === 0) {
+    return null;
+  }
+
+  return actors[getRandomNumberUpToInt(actors.length)] ?? null;
+};
+
+/**
+ * Get a movie from a random year.
+ * @param {*} year
+ * @returns
  */
 const getMovieFromRandomYear = async (year) => {
-  // generate a random number
-  const randomPick = Math.floor(Math.random() * 10);
+  const url = `${TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV}${year}&api_key=${API_KEY}`;
+  const response = await fetchWithRetry(url);
+  const results = response?.data?.results ?? [];
 
-  const movie = await axios
-    .get(`${TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV}${year}&api_key=${API_KEY}`)
-    .then((res) => {
-      let rawResults = res.data.results.filter(
-        (movie) =>
-          !movie.genre_ids.includes(99) && !movie.genre_ids.includes(1077)
-      );
-      return rawResults.find((movie, i) => {
-        if (i === randomPick) {
-          return movie;
-        }
-      });
-    })
-    .catch((e) => console.error(e));
-  return movie;
-};
+  const filtered = results.filter(
+    (movie) =>
+      movie &&
+      Array.isArray(movie.genre_ids) &&
+      !movie.genre_ids.includes(99) &&
+      !movie.genre_ids.includes(1077)
+  );
 
-/**
- * Get five movies from one actor
- * @param {string} id
- * @returns {array} movies
- */
-const getFirstFiveActors = async (id) => {
-  let tempArray = [];
-  await axios
-    .get(
-      `${TMDB_SEARCH_CREDITS_FRONT}${id}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
-    )
-    .then((res) => {
-      res.data.cast.forEach((actor) => {
-        if (actor.order < 5) {
-          tempArray.push(actor);
-        }
-      });
-    })
-    .catch((e) => {
-      console.error(e);
-    });
-  return tempArray;
-};
-
-/**
- * Get five actors, filtering out any already chosen actors.
- * @param {string} id
- * @param {array} array
- * @returns {array} actors
- */
-const getFiveActors = async (movieId, arrayOfActors) => {
-  if (movieId && arrayOfActors) {
-    let ids = arrayOfActors.map((actor) => {
-      return actor.id;
-    });
-    let actors = [];
-    let filtered = [];
-
-    await axios
-      .get(
-        `${TMDB_SEARCH_CREDITS_FRONT}${movieId}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
-      )
-      .then((res) => {
-        filtered = res.data.cast.filter((actor) => !ids.includes(actor.id));
-        for (let i = 0; i < 5; i++) {
-          if (filtered[i] !== null) {
-            actors.push(filtered[i]);
-          } else {
-            actors.push(null);
-          }
-        }
-      })
-      .catch((e) => {
-        console.error(e);
-      });
-    return actors;
+  if (filtered.length === 0) {
+    return null;
   }
+
+  return filtered[getRandomNumberUpToInt(filtered.length)] ?? null;
 };
 
 /**
- * get a random actor from the array
- * @param {array} array
- * @returns {object} random actor
+ * Get the primary cast members for a movie.
+ * @param {*} movieId
+ * @returns
  */
-const getRandomActor = async (array) => {
-  if (array) {
-    const randomPick = Math.floor(Math.random() * array.length);
-    const randomActor = array.find((actor, i) => {
-      if (actor && i === randomPick) {
-        return actor;
-      }
-    });
-    return randomActor;
-  }
+const getPrimaryCast = async (movieId) => {
+  const credits = await getCredits(movieId);
+  const cast = Array.isArray(credits.cast) ? credits.cast : [];
+  return cast.filter((actor) => actor && actor.order < 5).slice(0, 5);
 };
 
 /**
- * Get the director of the specified movie.
- * @param {number} movieId
- * @returns {object} director
+ * Get supporting cast members for a movie, excluding previous cast.
+ * @param {*} movieId
+ * @param {*} previousCast
+ * @returns
  */
-const getDirector = async (movieId) => {
-  if (movieId) {
-    let directors = [];
-    let filtered = [];
-    await axios
-      .get(
-        `${TMDB_SEARCH_CREDITS_FRONT}${movieId}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`
-      )
-      .then((res) => {
-        filtered = res.data.crew.filter(
-          (crew) => crew.job.toLowerCase() === "director"
-        );
-        for (let i = 0; i < filtered.length; i++) {
-          if (filtered[i] !== null) {
-            directors.push(filtered[i]);
-          } else {
-            directors.push(null);
-          }
-        }
-      })
-      .catch((e) => {
-        console.error(e);
-      });
-    return directors;
-  }
+const getSupportingCast = async (movieId, previousCast = []) => {
+  const credits = await getCredits(movieId);
+  const cast = Array.isArray(credits.cast) ? credits.cast : [];
+  const excludeIds = new Set(
+    previousCast.filter(Boolean).map((actor) => actor.id)
+  );
+
+  return cast.filter((actor) => actor && !excludeIds.has(actor.id)).slice(0, 5);
 };
 
 /**
- * Return a random movie from an actors top five most popular
- * @param {string} actorId
- * @returns {object} movie
+ * Get directors for a movie.
+ * @param {*} movieId
+ * @returns
+ */
+const getDirectors = async (movieId) => {
+  const credits = await getCredits(movieId);
+  const crew = Array.isArray(credits.crew) ? credits.crew : [];
+  return crew.filter(
+    (crewMember) =>
+      crewMember &&
+      typeof crewMember.job === "string" &&
+      crewMember.job.toLowerCase() === "director"
+  );
+};
+
+/**
+ * Get a movie by actor ID, excluding already selected movies.
+ * @param {*} actorId
+ * @param {*} movies
+ * @returns
  */
 const getMovieByActorID = async (actorId, movies) => {
-  if (actorId && movies) {
-    let movieIds = movies.map((movie) => movie.id);
+  if (!actorId) {
+    return null;
+  }
 
-    let randomPick = 0;
-    let rMovie = {};
-    let filtered = [];
-    await axios
-      .get(`${TMDB_DISCOVER_MOVIE_BY_ACTOR}${actorId}&api_key=${API_KEY}`)
-      .then((res) => {
-        filtered = res.data.results.filter((movie) => {
-          return (
-            !movieIds.includes(movie.id) &&
-            !movie.genre_ids.includes(99) &&
-            !movie.genre_ids.includes(1077)
-          );
-        });
+  const movieIds = new Set((movies || []).map((movie) => movie.id));
+  const url = `${TMDB_DISCOVER_MOVIE_BY_ACTOR}${actorId}&api_key=${API_KEY}`;
+  const response = await fetchWithRetry(url);
+  const results = response?.data?.results ?? [];
 
-        if (filtered.length < 5) {
-          randomPick = getRandomNumberUpToInt(filtered.length);
-        } else {
-          randomPick = getRandomNumberUpToInt(5);
+  const filtered = results.filter(
+    (movie) =>
+      movie &&
+      !movieIds.has(movie.id) &&
+      Array.isArray(movie.genre_ids) &&
+      !movie.genre_ids.includes(99) &&
+      !movie.genre_ids.includes(1077)
+  );
+
+  if (filtered.length === 0) {
+    return null;
+  }
+
+  const selectionPool = filtered.slice(0, Math.min(filtered.length, 5));
+  return selectionPool[getRandomNumberUpToInt(selectionPool.length)] ?? null;
+};
+
+const createPuzzleMovie = (movie, cast, directors, keyPerson) => ({
+  ...movie,
+  cast,
+  directors,
+  keyPerson,
+});
+
+/**
+ * Generate a new puzzle.
+ * @returns
+ */
+const makePuzzle = async () => {
+  try {
+    const randomYear = Math.floor(
+      Math.random() * (CURRENT_YEAR - LOWEST_YEAR) + LOWEST_YEAR
+    );
+
+    const tempArray = [];
+    const puzzleLength = 6;
+
+    const seedMovie = await getMovieFromRandomYear(randomYear);
+
+    if (!seedMovie) {
+      throw createExternalServiceError(
+        "TMDB returned no seed movies for the selected year."
+      );
+    }
+
+    const [seedCast, seedDirectors] = await Promise.all([
+      getPrimaryCast(seedMovie.id),
+      getDirectors(seedMovie.id),
+    ]);
+
+    if (!seedCast.length) {
+      throw createExternalServiceError("Seed movie did not include cast data.");
+    }
+
+    const seedKeyPerson = getRandomActor(seedCast) ?? seedCast[0];
+
+    tempArray.push(
+      createPuzzleMovie(seedMovie, seedCast, seedDirectors, seedKeyPerson)
+    );
+
+    while (tempArray.length < puzzleLength) {
+      const previousMovie = tempArray[tempArray.length - 1];
+
+      // Try linking via the previously selected actor first, then fall back to other cast members.
+      const actorsToTry = [
+        previousMovie.keyPerson,
+        ...previousMovie.cast.filter(
+          (actor) => actor && actor.id !== previousMovie.keyPerson?.id
+        ),
+      ].filter(Boolean);
+
+      let nextMovie = null;
+      const attemptedActorIds = new Set();
+
+      for (const actor of actorsToTry) {
+        if (attemptedActorIds.has(actor.id)) {
+          continue;
         }
+        attemptedActorIds.add(actor.id);
+        nextMovie = await getMovieByActorID(actor.id, tempArray);
+        if (nextMovie) {
+          break;
+        }
+      }
 
-        rMovie = filtered.find((movie, i) => {
-          if (i === randomPick) {
-            return movie;
-          }
-        });
-      })
-      .catch((e) => {
-        console.error(e);
-      });
-    return rMovie;
+      if (!nextMovie) {
+        throw createExternalServiceError(
+          "Unable to find a connected movie for the current cast."
+        );
+      }
+
+      const [nextCast, nextDirectors] = await Promise.all([
+        getSupportingCast(nextMovie.id, previousMovie.cast),
+        getDirectors(nextMovie.id),
+      ]);
+
+      if (!nextCast.length) {
+        throw createExternalServiceError(
+          "Discovered movie did not include sufficient cast data."
+        );
+      }
+
+      const nextKeyPerson = getRandomActor(nextCast) ?? nextCast[0];
+
+      tempArray.push(
+        createPuzzleMovie(nextMovie, nextCast, nextDirectors, nextKeyPerson)
+      );
+    }
+
+    const timestamp = Date.now();
+    const normalizedPuzzle = tempArray.map((movie) =>
+      buildNormalizedMovie(movie)
+    );
+    const keyPeople = normalizedPuzzle.map(
+      (movie) => movie?.keyPerson?.name ?? ""
+    );
+
+    const newPuzzle = {
+      puzzleId: timestamp,
+      puzzle: normalizedPuzzle,
+      keyPeople,
+    };
+
+    await saveData(JSON.stringify(newPuzzle), timestamp);
+    console.info("puzzle made");
+    return newPuzzle;
+  } catch (error) {
+    if (error?.isExternalServiceError) {
+      throw error;
+    }
+
+    throw createExternalServiceError("Failed to generate puzzle.", error);
   }
 };
 
