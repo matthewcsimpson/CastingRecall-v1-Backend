@@ -1,0 +1,271 @@
+{
+  "puzzleId": 1767070272758,
+  "puzzle": [
+    {
+      "id": 8966,
+      "title": "Twilight",
+      "original_title": "Twilight",
+      "poster_path": "/3Gkb6jm6962ADUPaCBqzz9CTbn9.jpg",
+      "release_date": "2008-11-21",
+      "overview": "When Bella Swan moves to a small town in the Pacific Northwest, she falls in love with Edward Cullen, a mysterious classmate who reveals himself to be a 108-year-old vampire. Despite Edward's repeated cautions, Bella can't stay away from him, a fatal move that endangers her own life.",
+      "genre_ids": [14, 18, 10749],
+      "directors": [{ "id": 19850, "name": "Catherine Hardwicke" }],
+      "cast": [
+        {
+          "id": 37917,
+          "name": "Kristen Stewart",
+          "character": "Bella Swan",
+          "profile_path": "/ryhCjTGqS6G6OprbR0qUEH355lA.jpg"
+        },
+        {
+          "id": 11288,
+          "name": "Robert Pattinson",
+          "character": "Edward Cullen",
+          "profile_path": "/8A4PS5iG7GWEAVFftyqMZKl3qcr.jpg"
+        },
+        {
+          "id": 21029,
+          "name": "Billy Burke",
+          "character": "Charlie Swan",
+          "profile_path": "/AoyN5a1TNRa4OCeylcXusQM1bD4.jpg"
+        },
+        {
+          "id": 56857,
+          "name": "Peter Facinelli",
+          "character": "Dr. Carlisle Cullen",
+          "profile_path": "/mmha3A5INmromiCsN8FBSLScVpZ.jpg"
+        },
+        {
+          "id": 45827,
+          "name": "Ashley Greene",
+          "character": "Alice Cullen",
+          "profile_path": "/d7UyEB3cm4doT5JgkZb68PmG4sT.jpg"
+        }
+      ],
+      "keyPerson": { "name": "Kristen Stewart" }
+    },
+    {
+      "id": 58595,
+      "title": "Snow White and the Huntsman",
+      "original_title": "Snow White and the Huntsman",
+      "poster_path": "/8HUa5kRubYbnAD5UVpnhTGGgMTW.jpg",
+      "release_date": "2012-06-01",
+      "overview": "After the Evil Queen marries the King, she performs a violent coup in which the King is murdered and his daughter, Snow White, is taken captive. Almost a decade later, a grown Snow White is still in the clutches of the Queen. In order to obtain immortality, The Evil Queen needs the heart of Snow White. After Snow escapes the castle, the Queen sends the Huntsman to find her in the Dark Forest.",
+      "genre_ids": [12, 14, 18],
+      "directors": [{ "id": 228134, "name": "Rupert Sanders" }],
+      "cast": [
+        {
+          "id": 74568,
+          "name": "Chris Hemsworth",
+          "character": "The Huntsman",
+          "profile_path": "/piQGdoIQOF3C1EI5cbYZLAW1gfj.jpg"
+        },
+        {
+          "id": 6885,
+          "name": "Charlize Theron",
+          "character": "Queen Ravenna",
+          "profile_path": "/ie1KbeYFG5E0GVr1QP7tDNuXvga.jpg"
+        },
+        {
+          "id": 237455,
+          "name": "Sam Claflin",
+          "character": "William",
+          "profile_path": "/e5CU4tjCNZFfm7ITmZfzjZse2Bb.jpg"
+        },
+        {
+          "id": 6972,
+          "name": "Ian McShane",
+          "character": "Beith",
+          "profile_path": "/qh9RTLbnr128TZLdGuXwUH9mdBM.jpg"
+        },
+        {
+          "id": 5538,
+          "name": "Ray Winstone",
+          "character": "Gort",
+          "profile_path": "/kDShEv6zPfArgcwXliGWKR65Mmo.jpg"
+        }
+      ],
+      "keyPerson": { "name": "Charlize Theron" }
+    },
+    {
+      "id": 8960,
+      "title": "Hancock",
+      "original_title": "Hancock",
+      "poster_path": "/7DyuV2G0hLEqHeueDfOqhZ2DVut.jpg",
+      "release_date": "2008-07-01",
+      "overview": "Hancock is a down-and-out superhero who's forced to employ a PR expert to help repair his image when the public grows weary of all the damage he's inflicted during his lifesaving heroics. The agent's idea of imprisoning the antihero to make the world miss him proves successful, but will Hancock stick to his new sense of purpose or slip back into old habits?",
+      "genre_ids": [14, 28],
+      "directors": [{ "id": 36602, "name": "Peter Berg" }],
+      "cast": [
+        {
+          "id": 2888,
+          "name": "Will Smith",
+          "character": "John Hancock",
+          "profile_path": "/8TlKqbXYgHmmaEoPBJ7djJ8Rxxa.jpg"
+        },
+        {
+          "id": 23532,
+          "name": "Jason Bateman",
+          "character": "Ray",
+          "profile_path": "/8e6mt0vGjPo6eW52gqRuXy5YnfN.jpg"
+        },
+        {
+          "id": 66658,
+          "name": "Jae Head",
+          "character": "Aaron",
+          "profile_path": "/nNh2DiYXZneyeiYDitKT6s1AwEy.jpg"
+        },
+        {
+          "id": 1665,
+          "name": "Eddie Marsan",
+          "character": "Red",
+          "profile_path": "/9atfOgIxhfOKvv2be8HEp6SzOct.jpg"
+        },
+        {
+          "id": 66634,
+          "name": "David Mattey",
+          "character": "Man Mountain",
+          "profile_path": "/elz9J0KJEiKj1F3d106628m4wc8.jpg"
+        }
+      ],
+      "keyPerson": { "name": "Jae Head" }
+    },
+    {
+      "id": 397601,
+      "title": "The Bachelors",
+      "original_title": "The Bachelors",
+      "poster_path": "/yAwoDmcLFuZxg5bHzYgRexYhykm.jpg",
+      "release_date": "2017-10-20",
+      "overview": "After the early death of his wife, a mourning father moves with his teenage son across the country for a private school teaching job. Their lives begin to transform due to two unique women, who help them embrace life and love again",
+      "genre_ids": [35, 18, 10749],
+      "directors": [{ "id": 19970, "name": "Kurt Voelker" }],
+      "cast": [
+        {
+          "id": 18999,
+          "name": "J.K. Simmons",
+          "character": "Bill Palet",
+          "profile_path": "/ScmKoJ9eiSUOthAt1PDNLi8Fkw.jpg"
+        },
+        {
+          "id": 1279814,
+          "name": "Josh Wiggins",
+          "character": "Wes Palet",
+          "profile_path": "/8ibSjOrx62IRfcBVssu6q3lzlQp.jpg"
+        },
+        {
+          "id": 1146,
+          "name": "Julie Delpy",
+          "character": "Carine Roussel",
+          "profile_path": "/rd40f4QpAUUne3hMaUhHrZtcK2c.jpg"
+        },
+        {
+          "id": 1121786,
+          "name": "Odeya Rush",
+          "character": "Lacy Westman",
+          "profile_path": "/arO1c4YzhjlYcZdHpu41haGQvpQ.jpg"
+        },
+        {
+          "id": 14721,
+          "name": "Kevin Dunn",
+          "character": "Paul Abernac",
+          "profile_path": "/7dqLQjMNCQnuxQJQwQ5Ozz16LBq.jpg"
+        }
+      ],
+      "keyPerson": { "name": "Josh Wiggins" }
+    },
+    {
+      "id": 664301,
+      "title": "I Used to Go Here",
+      "original_title": "I Used to Go Here",
+      "poster_path": "/7cN1YBcuBKrxdtxUDig29cXKfKR.jpg",
+      "release_date": "2020-08-07",
+      "overview": "Following the lackluster launch of her debut novel, 35-year-old writer Kate Conklin receives an invitation from her former professor and old crush to speak at her alma mater. With her book tour canceled and her ego deflated, Kate decides to take the trip, wondering if it might give her the morale boost she sorely needs. Instead, she falls into a comical regression—from misadventures with eccentric twenty-year-olds, to feelings of jealousy toward her former professor’s new favorite student. Striking the balance between bittersweet and hilarious, Kate takes a journey through her past to reevaluate her future.",
+      "genre_ids": [35, 18, 10749],
+      "directors": [{ "id": 45423, "name": "Kris Rey" }],
+      "cast": [
+        {
+          "id": 94098,
+          "name": "Gillian Jacobs",
+          "character": "Kate Conklin",
+          "profile_path": "/sbZVI3F2t5CjmRANwHk3X6iOQpt.jpg"
+        },
+        {
+          "id": 55936,
+          "name": "Jemaine Clement",
+          "character": "David Kirkpatrick",
+          "profile_path": "/6eiNbeurpHb2fxIeT0RrJ0wRI25.jpg"
+        },
+        {
+          "id": 59261,
+          "name": "Hannah Marks",
+          "character": "April",
+          "profile_path": "/wPb71lRvduHn25WYJIuF7tK0fTt.jpg"
+        },
+        {
+          "id": 1560185,
+          "name": "Forrest Goodluck",
+          "character": "Animal",
+          "profile_path": "/bJk2atLajV2o4GnwkJgMpq5WPXN.jpg"
+        },
+        {
+          "id": 62863,
+          "name": "Jorma Taccone",
+          "character": "Bradley Cooper",
+          "profile_path": "/x7x4NvDauuQ7HA6psLZYZ6m3zTd.jpg"
+        }
+      ],
+      "keyPerson": { "name": "Gillian Jacobs" }
+    },
+    {
+      "id": 243938,
+      "title": "Hot Tub Time Machine 2",
+      "original_title": "Hot Tub Time Machine 2",
+      "poster_path": "/lBroHetSm8RMI8zp7ThpFJsw9E1.jpg",
+      "release_date": "2015-02-20",
+      "overview": "After their first adventure with the Hot Tub Time Machine, Lou and Nick are living very well off their ill-gotten gains, while Jacob still cannot rely on Lou to be a positive role model. When an unknown assailant breaks into Lou's mansion and shoots him, Nick and Jacob take him for another trip in the hot tub. They emerge in the year 2025, where they must figure out who shot Lou and prevent it from happening again.",
+      "genre_ids": [35],
+      "directors": [{ "id": 3227, "name": "Steve Pink" }],
+      "cast": [
+        {
+          "id": 52997,
+          "name": "Rob Corddry",
+          "character": "Lou Dorchen",
+          "profile_path": "/AjCLr5ZjP6iiP8D6SHQVCZ720nA.jpg"
+        },
+        {
+          "id": 64342,
+          "name": "Craig Robinson",
+          "character": "Nick Webber",
+          "profile_path": "/mTyTrOWUSOBJMOlDpnd4OYx7FlJ.jpg"
+        },
+        {
+          "id": 54729,
+          "name": "Clark Duke",
+          "character": "Jacob Yates-Dorchen",
+          "profile_path": "/qL7x57avA9IupsjtwnpIuJ8p8BD.jpg"
+        },
+        {
+          "id": 1159009,
+          "name": "Bianca Haase",
+          "character": "Sophie",
+          "profile_path": "/pTydYBVeXwLD1zhNxq5wUXlmzSf.jpg"
+        },
+        {
+          "id": 54812,
+          "name": "Chevy Chase",
+          "character": "Repairman",
+          "profile_path": "/xmAcHXakDi0elKsCl2sRjtobQnx.jpg"
+        }
+      ],
+      "keyPerson": { "name": "Clark Duke" }
+    }
+  ],
+  "keyPeople": [
+    "Kristen Stewart",
+    "Charlize Theron",
+    "Jae Head",
+    "Josh Wiggins",
+    "Gillian Jacobs",
+    "Clark Duke"
+  ]
+}

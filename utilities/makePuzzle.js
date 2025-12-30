@@ -23,7 +23,6 @@ const CREDITS_CACHE_MAX = parseNumberWithDefault(
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-const { saveData } = require("../utilities/readWrite");
 const { buildNormalizedMovie } = require("./puzzleFormatter");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -346,7 +345,6 @@ const makePuzzle = async () => {
       keyPeople,
     };
 
-    await saveData(JSON.stringify(newPuzzle), timestamp);
     console.info("puzzle made");
     return newPuzzle;
   } catch (error) {
