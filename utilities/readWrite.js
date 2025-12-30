@@ -4,7 +4,6 @@ const path = require("path");
 /**
  * Function to read the INVENTORY JSON file.
  * @param {string} location
- * @param {function} callback
  */
 exports.loadFile = async (location) => {
   return fs.readFile(location, "utf8");
@@ -13,7 +12,6 @@ exports.loadFile = async (location) => {
 /**
  * Function to read files in a directory.
  * @param {string} location
- * @param {function} callback
  */
 exports.loadDir = async (location) => {
   return fs.readdir(location, "utf8");

@@ -14,7 +14,7 @@ const {
   listPuzzles,
   getLatestPuzzle,
   getPuzzleById,
-} = require("../controllers/puzzleContoller");
+} = require("../controllers/puzzleController");
 
 /**
  * Generate a new puzzle.
