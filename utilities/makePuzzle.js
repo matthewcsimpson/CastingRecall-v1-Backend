@@ -10,7 +10,7 @@ const TMDB_DISCOVER_MOVIE_BY_ACTOR = process.env.TMDB_DISCOVER_MOVIE_BY_ACTOR;
 
 const { parseNumberWithDefault } = require("./numberUtils");
 
-const LOWEST_YEAR = parseNumberWithDefault(process.env.LOWEST_YEAR, 1990);
+const LOWEST_YEAR = parseNumberWithDefault(process.env.LOWEST_YEAR, 1980);
 const MAX_RETRIES = parseNumberWithDefault(process.env.MAX_RETRIES, 2);
 const RETRY_DELAY_MS = parseNumberWithDefault(process.env.RETRY_DELAY_MS, 300);
 const CREDITS_CACHE_MAX = parseNumberWithDefault(
@@ -186,7 +186,6 @@ const getMovieFromRandomYear = async (year) => {
   const filtered = results.filter(
     (movie) =>
       movie &&
-      isWithinYearBounds(movie) &&
       Array.isArray(movie.genre_ids) &&
       !movie.genre_ids.includes(99) &&
       !movie.genre_ids.includes(1077)

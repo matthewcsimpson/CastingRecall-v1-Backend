@@ -98,6 +98,12 @@ exports.listPuzzles = async (req, res) => {
     return res.status(400).json({ message: "Invalid pageSize value" });
   }
 
+  if (pageSize > MAX_PAGE_SIZE) {
+    return res
+      .status(400)
+      .json({ message: `pageSize cannot exceed ${MAX_PAGE_SIZE}` });
+  }
+
   const effectivePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
   const offset = (page - 1) * effectivePageSize;
 
@@ -128,7 +134,7 @@ exports.listPuzzles = async (req, res) => {
         totalItems: totalCount,
         totalPages,
         hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1 && totalPages > 0,
+        hasPreviousPage: page > 1,
       },
     });
   } catch (err) {
