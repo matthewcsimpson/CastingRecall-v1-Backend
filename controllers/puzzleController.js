@@ -65,10 +65,6 @@ exports.generatePuzzle = async (req, res) => {
       } else {
         console.error(`---> generatePuzzle attempt ${attempt} failed:`, err);
       }
-
-      if (attempt < MAX_GENERATION_ATTEMPTS) {
-        continue;
-      }
     }
   }
 
@@ -113,6 +109,16 @@ exports.listPuzzles = async (req, res) => {
 
     const totalPages =
       totalCount === 0 ? 0 : Math.ceil(totalCount / effectivePageSize);
+
+    if (
+      (totalPages > 0 && page > totalPages) ||
+      (totalPages === 0 && page > 1)
+    ) {
+      return res.status(400).json({
+        message: "Page value exceeds available results",
+        totalPages,
+      });
+    }
 
     return res.status(200).json({
       puzzles,

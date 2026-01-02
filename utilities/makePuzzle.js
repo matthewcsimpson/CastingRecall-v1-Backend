@@ -22,8 +22,22 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 const { buildNormalizedMovie } = require("./puzzleFormatter");
 
+/**
+ * @typedef {import("axios").AxiosResponse<any>} AxiosResponse
+ * @typedef {{ id?: number|null, name?: string|null, original_name?: string|null, fullName?: string|null, character?: string|null, profile_path?: string|null, order?: number|null }} TMDBPerson
+ * @typedef {{ id?: number|null, title?: string|null, name?: string|null, original_title?: string|null, original_name?: string|null, poster_path?: string|null, release_date?: string|null, overview?: string|null, genre_ids?: Array<number|string>, keyPerson?: TMDBPerson|null, cast?: TMDBPerson[], directors?: TMDBPerson[] }} TMDBMovie
+ * @typedef {{ cast: TMDBPerson[], crew: TMDBPerson[] }} TMDBCredits
+ * @typedef {Error & { statusCode: number, isExternalServiceError: true, cause?: unknown, rateLimitReset?: string|null }} ExternalServiceError
+ * @typedef {TMDBMovie & { keyPerson: TMDBPerson|null, cast: TMDBPerson[], directors: TMDBPerson[] }} PuzzleMovie
+ */
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Extract a numeric year from a TMDB movie.
+ * @param {TMDBMovie|undefined|null} movie
+ * @returns {number|null}
+ */
 const getReleaseYear = (movie) => {
   const releaseDate = movie?.release_date;
   if (typeof releaseDate !== "string" || releaseDate.length < 4) {
@@ -34,6 +48,11 @@ const getReleaseYear = (movie) => {
   return Number.isFinite(year) ? year : null;
 };
 
+/**
+ * Determine whether a movie release year falls within configured bounds.
+ * @param {TMDBMovie|undefined|null} movie
+ * @returns {boolean}
+ */
 const isWithinYearBounds = (movie) => {
   const releaseYear = getReleaseYear(movie);
   if (releaseYear === null) {
@@ -52,9 +71,9 @@ const buildCreditsUrl = (movieId) =>
 
 /**
  * Create a standardized external service error.
- * @param {*} message
- * @param {*} cause
- * @returns
+ * @param {string} message
+ * @param {unknown} [cause]
+ * @returns {ExternalServiceError}
  */
 const createExternalServiceError = (message, cause) => {
   const error = new Error(message);
@@ -69,9 +88,9 @@ const createExternalServiceError = (message, cause) => {
 
 /**
  * Fetch with retry logic for transient errors.
- * @param {*} url
- * @param {*} retries
- * @returns
+ * @param {string} url
+ * @param {number} [retries]
+ * @returns {Promise<AxiosResponse>}
  */
 const fetchWithRetry = async (url, retries = MAX_RETRIES) => {
   let attempt = 0;
@@ -103,8 +122,8 @@ const fetchWithRetry = async (url, retries = MAX_RETRIES) => {
 
 /**
  * Get movie credits, utilizing in-memory caching.
- * @param {*} movieId
- * @returns
+ * @param {number|string|null} movieId
+ * @returns {Promise<TMDBCredits>}
  */
 const getCredits = async (movieId) => {
   if (!movieId) {
@@ -130,8 +149,8 @@ const getCredits = async (movieId) => {
 
 /**
  * Get a random integer from 0 up to (but not including) the specified number.
- * @param {*} num
- * @returns
+ * @param {number} num
+ * @returns {number}
  */
 const getRandomNumberUpToInt = (num) => {
   if (!Number.isFinite(num) || num <= 0) {
@@ -143,8 +162,8 @@ const getRandomNumberUpToInt = (num) => {
 
 /**
  * Get a random actor from the provided array.
- * @param {*} actors
- * @returns
+ * @param {TMDBPerson[]|undefined|null} actors
+ * @returns {TMDBPerson|null}
  */
 const getRandomActor = (actors) => {
   if (!Array.isArray(actors) || actors.length === 0) {
@@ -156,8 +175,8 @@ const getRandomActor = (actors) => {
 
 /**
  * Get a movie from a random year.
- * @param {*} year
- * @returns
+ * @param {number} year
+ * @returns {Promise<TMDBMovie|null>}
  */
 const getMovieFromRandomYear = async (year) => {
   const url = `${TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV}${year}&api_key=${API_KEY}`;
@@ -182,8 +201,8 @@ const getMovieFromRandomYear = async (year) => {
 
 /**
  * Get the primary cast members for a movie.
- * @param {*} movieId
- * @returns
+ * @param {number|string|null} movieId
+ * @returns {Promise<TMDBPerson[]>}
  */
 const getPrimaryCast = async (movieId) => {
   const credits = await getCredits(movieId);
@@ -193,9 +212,9 @@ const getPrimaryCast = async (movieId) => {
 
 /**
  * Get supporting cast members for a movie, excluding previous cast.
- * @param {*} movieId
- * @param {*} previousCast
- * @returns
+ * @param {number|string|null} movieId
+ * @param {TMDBPerson[]} [previousCast]
+ * @returns {Promise<TMDBPerson[]>}
  */
 const getSupportingCast = async (movieId, previousCast = []) => {
   const credits = await getCredits(movieId);
@@ -209,8 +228,8 @@ const getSupportingCast = async (movieId, previousCast = []) => {
 
 /**
  * Get directors for a movie.
- * @param {*} movieId
- * @returns
+ * @param {number|string|null} movieId
+ * @returns {Promise<TMDBPerson[]>}
  */
 const getDirectors = async (movieId) => {
   const credits = await getCredits(movieId);
@@ -225,9 +244,9 @@ const getDirectors = async (movieId) => {
 
 /**
  * Get a movie by actor ID, excluding already selected movies.
- * @param {*} actorId
- * @param {*} movies
- * @returns
+ * @param {number|string|null} actorId
+ * @param {TMDBMovie[]} movies
+ * @returns {Promise<TMDBMovie|null>}
  */
 const getMovieByActorID = async (actorId, movies) => {
   if (!actorId) {
@@ -257,6 +276,14 @@ const getMovieByActorID = async (actorId, movies) => {
   return selectionPool[getRandomNumberUpToInt(selectionPool.length)] ?? null;
 };
 
+/**
+ * Combine movie and credit metadata into a puzzle entry.
+ * @param {TMDBMovie} movie
+ * @param {TMDBPerson[]} cast
+ * @param {TMDBPerson[]} directors
+ * @param {TMDBPerson|null} keyPerson
+ * @returns {PuzzleMovie}
+ */
 const createPuzzleMovie = (movie, cast, directors, keyPerson) => ({
   ...movie,
   cast,
@@ -266,7 +293,7 @@ const createPuzzleMovie = (movie, cast, directors, keyPerson) => ({
 
 /**
  * Generate a new puzzle.
- * @returns
+ * @returns {Promise<{ puzzleId: number, puzzle: ReturnType<typeof buildNormalizedMovie>[], keyPeople: string[] }>}
  */
 const makePuzzle = async () => {
   try {

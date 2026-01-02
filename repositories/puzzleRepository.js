@@ -1,9 +1,17 @@
 const { query } = require("../utilities/db");
 
 /**
+ * @typedef {Object} PuzzleRecord
+ * @property {number} puzzleId
+ * @property {unknown[]} puzzle
+ * @property {string[]} keyPeople
+ * @property {string|Date|null} createdAt
+ */
+
+/**
  * Map a database row to a puzzle object.
- * @param {*} row
- * @returns
+ * @param {{ puzzle_id: number, puzzle?: string|unknown[], key_people?: string[]|null, created_at?: string|Date|null }|null} row Database row.
+ * @returns {PuzzleRecord|null}
  */
 const mapPuzzleRow = (row) => {
   if (!row) {
@@ -33,7 +41,8 @@ const mapPuzzleRow = (row) => {
 
 /**
  * Insert or update a puzzle record.
- * @param {*} param0
+ * @param {{ puzzleId: number, puzzle?: unknown[], keyPeople?: string[] }} params Puzzle payload.
+ * @returns {Promise<void>}
  */
 const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
   const serializedPuzzle = JSON.stringify(puzzle ?? []);
@@ -60,8 +69,9 @@ const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
 };
 
 /**
- * List puzzles with their IDs and key people.
- * @returns
+ * List puzzles with pagination metadata.
+ * @param {{ limit: number, offset: number }} params Pagination options.
+ * @returns {Promise<{ totalCount: number, puzzles: Array<{ puzzleId: number, keyPeople: string[] }> }>}
  */
 const listPuzzlesFromDb = async ({ limit, offset }) => {
   const result = await query(
@@ -74,9 +84,22 @@ const listPuzzlesFromDb = async ({ limit, offset }) => {
     [limit, offset]
   );
 
-  const totalCount = result.rows.length
-    ? Number(result.rows[0].total_count)
-    : 0;
+  let totalCount;
+
+  if (result.rows.length) {
+    totalCount = Number(result.rows[0].total_count);
+  } else {
+    const countResult = await query(
+      `
+        SELECT COUNT(*) AS total_count
+        FROM puzzles
+      `
+    );
+
+    totalCount = countResult.rows.length
+      ? Number(countResult.rows[0].total_count)
+      : 0;
+  }
 
   return {
     totalCount,
@@ -89,7 +112,7 @@ const listPuzzlesFromDb = async ({ limit, offset }) => {
 
 /**
  * Get the most recently created puzzle.
- * @returns
+ * @returns {Promise<PuzzleRecord|null>}
  */
 const getLatestPuzzleFromDb = async () => {
   const result = await query(
@@ -110,8 +133,8 @@ const getLatestPuzzleFromDb = async () => {
 
 /**
  * Get a puzzle by its ID.
- * @param {*} puzzleId
- * @returns
+ * @param {number} puzzleId Puzzle identifier.
+ * @returns {Promise<PuzzleRecord|null>}
  */
 const getPuzzleByIdFromDb = async (puzzleId) => {
   const result = await query(
