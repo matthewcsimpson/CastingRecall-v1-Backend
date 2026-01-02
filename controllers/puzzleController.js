@@ -8,10 +8,6 @@ const {
 } = require("../repositories/puzzleRepository");
 const { parseIntWithDefault } = require("../utilities/numberUtils");
 
-const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 100;
-
 const MAX_GENERATION_ATTEMPTS = parseIntWithDefault(
   process.env.MAX_GENERATION_ATTEMPTS,
   3
@@ -81,62 +77,10 @@ exports.generatePuzzle = async (req, res) => {
  * @param {object} res
  */
 exports.listPuzzles = async (req, res) => {
-  const { page: rawPage, pageSize: rawPageSize } = req.query;
-
-  const page =
-    rawPage === undefined ? DEFAULT_PAGE : Number.parseInt(rawPage, 10);
-  const pageSize =
-    rawPageSize === undefined
-      ? DEFAULT_PAGE_SIZE
-      : Number.parseInt(rawPageSize, 10);
-
-  if (Number.isNaN(page) || page < 1) {
-    return res.status(400).json({ message: "Invalid page value" });
-  }
-
-  if (Number.isNaN(pageSize) || pageSize < 1) {
-    return res.status(400).json({ message: "Invalid pageSize value" });
-  }
-
-  if (pageSize > MAX_PAGE_SIZE) {
-    return res
-      .status(400)
-      .json({ message: `pageSize cannot exceed ${MAX_PAGE_SIZE}` });
-  }
-
-  const effectivePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
-  const offset = (page - 1) * effectivePageSize;
-
   try {
-    const { totalCount, puzzles } = await listPuzzlesFromDb({
-      limit: effectivePageSize,
-      offset,
-    });
+    const puzzles = await listPuzzlesFromDb();
 
-    const totalPages =
-      totalCount === 0 ? 0 : Math.ceil(totalCount / effectivePageSize);
-
-    if (
-      (totalPages > 0 && page > totalPages) ||
-      (totalPages === 0 && page > 1)
-    ) {
-      return res.status(400).json({
-        message: "Page value exceeds available results",
-        totalPages,
-      });
-    }
-
-    return res.status(200).json({
-      puzzles,
-      pagination: {
-        page,
-        pageSize: effectivePageSize,
-        totalItems: totalCount,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    });
+    return res.status(200).json({ puzzles });
   } catch (err) {
     console.error("---> listPuzzles: ", err);
     return res.status(500).json({ message: "Unable to list puzzles" });

@@ -69,45 +69,19 @@ const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
 };
 
 /**
- * List puzzles with pagination metadata.
- * @param {{ limit: number, offset: number }} params Pagination options.
- * @returns {Promise<{ totalCount: number, puzzles: Array<{ puzzleId: number, keyPeople: string[] }> }>}
+ * List all puzzles ordered by most recent identifiers.
+ * @returns {Promise<PuzzleRecord[]>}
  */
-const listPuzzlesFromDb = async ({ limit, offset }) => {
+const listPuzzlesFromDb = async () => {
   const result = await query(
     `
-      SELECT puzzle_id, key_people, COUNT(*) OVER() AS total_count
+      SELECT puzzle_id, puzzle, key_people, created_at
       FROM puzzles
       ORDER BY puzzle_id DESC
-      LIMIT $1 OFFSET $2
-    `,
-    [limit, offset]
+    `
   );
 
-  let totalCount;
-
-  if (result.rows.length) {
-    totalCount = Number(result.rows[0].total_count);
-  } else {
-    const countResult = await query(
-      `
-        SELECT COUNT(*) AS total_count
-        FROM puzzles
-      `
-    );
-
-    totalCount = countResult.rows.length
-      ? Number(countResult.rows[0].total_count)
-      : 0;
-  }
-
-  return {
-    totalCount,
-    puzzles: result.rows.map((row) => ({
-      puzzleId: Number(row.puzzle_id),
-      keyPeople: Array.isArray(row.key_people) ? row.key_people : [],
-    })),
-  };
+  return result.rows.map((row) => mapPuzzleRow(row));
 };
 
 /**
