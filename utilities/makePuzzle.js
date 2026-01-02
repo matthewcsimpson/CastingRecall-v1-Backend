@@ -8,10 +8,7 @@ const TMDB_SEARCH_CREDITS_FRONT = process.env.TMDB_SEARCH_CREDITS_FRONT;
 const TMBD_SEARCH_CREDITS_BACK = process.env.TMBD_SEARCH_CREDITS_BACK;
 const TMDB_DISCOVER_MOVIE_BY_ACTOR = process.env.TMDB_DISCOVER_MOVIE_BY_ACTOR;
 
-const parseNumberWithDefault = (value, fallback) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
+const { parseNumberWithDefault } = require("./numberUtils");
 
 const LOWEST_YEAR = parseNumberWithDefault(process.env.LOWEST_YEAR, 1990);
 const MAX_RETRIES = parseNumberWithDefault(process.env.MAX_RETRIES, 2);
@@ -26,6 +23,25 @@ const CURRENT_YEAR = new Date().getFullYear();
 const { buildNormalizedMovie } = require("./puzzleFormatter");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getReleaseYear = (movie) => {
+  const releaseDate = movie?.release_date;
+  if (typeof releaseDate !== "string" || releaseDate.length < 4) {
+    return null;
+  }
+
+  const year = Number.parseInt(releaseDate.slice(0, 4), 10);
+  return Number.isFinite(year) ? year : null;
+};
+
+const isWithinYearBounds = (movie) => {
+  const releaseYear = getReleaseYear(movie);
+  if (releaseYear === null) {
+    return false;
+  }
+
+  return releaseYear >= LOWEST_YEAR && releaseYear <= CURRENT_YEAR;
+};
 
 // In-memory cache for movie credits
 const creditsCache = new Map();
@@ -151,6 +167,7 @@ const getMovieFromRandomYear = async (year) => {
   const filtered = results.filter(
     (movie) =>
       movie &&
+      isWithinYearBounds(movie) &&
       Array.isArray(movie.genre_ids) &&
       !movie.genre_ids.includes(99) &&
       !movie.genre_ids.includes(1077)
@@ -225,6 +242,7 @@ const getMovieByActorID = async (actorId, movies) => {
   const filtered = results.filter(
     (movie) =>
       movie &&
+      isWithinYearBounds(movie) &&
       !movieIds.has(movie.id) &&
       Array.isArray(movie.genre_ids) &&
       !movie.genre_ids.includes(99) &&

@@ -6,10 +6,16 @@ const {
   getLatestPuzzleFromDb,
   getPuzzleByIdFromDb,
 } = require("../repositories/puzzleRepository");
+const { parseIntWithDefault } = require("../utilities/numberUtils");
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+
+const MAX_GENERATION_ATTEMPTS = parseIntWithDefault(
+  process.env.MAX_GENERATION_ATTEMPTS,
+  3
+);
 
 /**
  * Endpoint controller to generate a new puzzle.
@@ -36,22 +42,41 @@ exports.generatePuzzle = async (req, res) => {
     return res.status(403).json({ message: "Invalid generation key" });
   }
 
-  try {
-    const puzzle = await makePuzzle();
-    await insertPuzzleToDb({
-      puzzleId: puzzle.puzzleId,
-      puzzle: puzzle.puzzle,
-      keyPeople: puzzle.keyPeople,
-    });
-    return res.send("puzzle made!");
-  } catch (err) {
-    if (err?.isExternalServiceError) {
-      return res.status(502).json({ message: err.message });
-    }
+  let attempt = 0;
+  let lastError = null;
 
-    console.error("---> generatePuzzle: ", err);
-    return res.status(500).json({ message: "Unable to generate puzzle" });
+  while (attempt < MAX_GENERATION_ATTEMPTS) {
+    try {
+      const puzzle = await makePuzzle();
+      await insertPuzzleToDb({
+        puzzleId: puzzle.puzzleId,
+        puzzle: puzzle.puzzle,
+        keyPeople: puzzle.keyPeople,
+      });
+      return res.send("puzzle made!");
+    } catch (err) {
+      lastError = err;
+      attempt += 1;
+
+      if (err?.isExternalServiceError) {
+        console.warn(
+          `---> generatePuzzle attempt ${attempt} failed (external service): ${err.message}`
+        );
+      } else {
+        console.error(`---> generatePuzzle attempt ${attempt} failed:`, err);
+      }
+
+      if (attempt < MAX_GENERATION_ATTEMPTS) {
+        continue;
+      }
+    }
   }
+
+  if (lastError?.isExternalServiceError) {
+    return res.status(502).json({ message: lastError.message });
+  }
+
+  return res.status(500).json({ message: "Unable to generate puzzle" });
 };
 
 /**
