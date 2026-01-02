@@ -20,14 +20,15 @@ _Be sure to check out the front end repo: [Casting ReCall - React Front End](htt
 This project was created using the following.
 
 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nodejs/nodejs-original-wordmark.svg" alt="nodejs" width="60" height="60" />
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg" alt="javascript" width="60" height="60" />
 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/express/express-original.svg" alt="express" width="60" height="60" />
 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg" alt="postgres" width="60" height="60"/>
 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/heroku/heroku-plain.svg" alt="Heroku" width="60" height="60"/>
 
+## Author
+
+[Matthew Simpson](https://mattsimpson.name)
+
 ## License
 
 This project is available under the MIT License. See [LICENSE](LICENSE).
-
-## Author
-
-- [@MatthewCSimpson](https://www.github.com/matthewcsimpson)
