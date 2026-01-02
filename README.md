@@ -30,6 +30,32 @@ _Be sure to check out the front end repo: [Casting ReCall - React Front End](htt
   GET /puzzle/list
 ```
 
+| Query param | Type     | Description                                                 |
+| :---------- | :------- | :---------------------------------------------------------- |
+| `page`      | `number` | Page to load (optional, defaults to 1, must be >= 1).       |
+| `pageSize`  | `number` | Items per page (optional, defaults to 20, max allowed 100). |
+
+Example response
+
+```
+{
+  "puzzles": [
+    {
+      "puzzleId": 1767070272758,
+      "keyPeople": ["Actor One", "Actor Two"]
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "totalItems": 42,
+    "totalPages": 3,
+    "hasNextPage": true,
+    "hasPreviousPage": false
+  }
+}
+```
+
 #### Get a specific puzzle
 
 ```

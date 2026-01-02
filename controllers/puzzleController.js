@@ -7,6 +7,10 @@ const {
   getPuzzleByIdFromDb,
 } = require("../repositories/puzzleRepository");
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
 /**
  * Endpoint controller to generate a new puzzle.
  * @param {object} req
@@ -55,10 +59,47 @@ exports.generatePuzzle = async (req, res) => {
  * @param {object} req
  * @param {object} res
  */
-exports.listPuzzles = async (_req, res) => {
+exports.listPuzzles = async (req, res) => {
+  const { page: rawPage, pageSize: rawPageSize } = req.query;
+
+  const page =
+    rawPage === undefined ? DEFAULT_PAGE : Number.parseInt(rawPage, 10);
+  const pageSize =
+    rawPageSize === undefined
+      ? DEFAULT_PAGE_SIZE
+      : Number.parseInt(rawPageSize, 10);
+
+  if (Number.isNaN(page) || page < 1) {
+    return res.status(400).json({ message: "Invalid page value" });
+  }
+
+  if (Number.isNaN(pageSize) || pageSize < 1) {
+    return res.status(400).json({ message: "Invalid pageSize value" });
+  }
+
+  const effectivePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
+  const offset = (page - 1) * effectivePageSize;
+
   try {
-    const summaries = await listPuzzlesFromDb();
-    return res.status(200).json(summaries);
+    const { totalCount, puzzles } = await listPuzzlesFromDb({
+      limit: effectivePageSize,
+      offset,
+    });
+
+    const totalPages =
+      totalCount === 0 ? 0 : Math.ceil(totalCount / effectivePageSize);
+
+    return res.status(200).json({
+      puzzles,
+      pagination: {
+        page,
+        pageSize: effectivePageSize,
+        totalItems: totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1 && totalPages > 0,
+      },
+    });
   } catch (err) {
     console.error("---> listPuzzles: ", err);
     return res.status(500).json({ message: "Unable to list puzzles" });

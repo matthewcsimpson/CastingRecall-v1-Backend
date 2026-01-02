@@ -63,19 +63,28 @@ const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
  * List puzzles with their IDs and key people.
  * @returns
  */
-const listPuzzlesFromDb = async () => {
+const listPuzzlesFromDb = async ({ limit, offset }) => {
   const result = await query(
     `
-      SELECT puzzle_id, key_people
+      SELECT puzzle_id, key_people, COUNT(*) OVER() AS total_count
       FROM puzzles
-      ORDER BY created_at DESC
-    `
+      ORDER BY puzzle_id DESC
+      LIMIT $1 OFFSET $2
+    `,
+    [limit, offset]
   );
 
-  return result.rows.map((row) => ({
-    puzzleId: Number(row.puzzle_id),
-    keyPeople: Array.isArray(row.key_people) ? row.key_people : [],
-  }));
+  const totalCount = result.rows.length
+    ? Number(result.rows[0].total_count)
+    : 0;
+
+  return {
+    totalCount,
+    puzzles: result.rows.map((row) => ({
+      puzzleId: Number(row.puzzle_id),
+      keyPeople: Array.isArray(row.key_people) ? row.key_people : [],
+    })),
+  };
 };
 
 /**
@@ -87,7 +96,7 @@ const getLatestPuzzleFromDb = async () => {
     `
       SELECT puzzle_id, puzzle, key_people, created_at
       FROM puzzles
-      ORDER BY created_at DESC
+      ORDER BY puzzle_id DESC
       LIMIT 1
     `
   );
