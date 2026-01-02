@@ -6,6 +6,12 @@ const {
   getLatestPuzzleFromDb,
   getPuzzleByIdFromDb,
 } = require("../repositories/puzzleRepository");
+const { parseIntWithDefault } = require("../utilities/numberUtils");
+
+const MAX_GENERATION_ATTEMPTS = parseIntWithDefault(
+  process.env.MAX_GENERATION_ATTEMPTS,
+  3
+);
 
 /**
  * Endpoint controller to generate a new puzzle.
@@ -32,22 +38,37 @@ exports.generatePuzzle = async (req, res) => {
     return res.status(403).json({ message: "Invalid generation key" });
   }
 
-  try {
-    const puzzle = await makePuzzle();
-    await insertPuzzleToDb({
-      puzzleId: puzzle.puzzleId,
-      puzzle: puzzle.puzzle,
-      keyPeople: puzzle.keyPeople,
-    });
-    return res.send("puzzle made!");
-  } catch (err) {
-    if (err?.isExternalServiceError) {
-      return res.status(502).json({ message: err.message });
-    }
+  let attempt = 0;
+  let lastError = null;
 
-    console.error("---> generatePuzzle: ", err);
-    return res.status(500).json({ message: "Unable to generate puzzle" });
+  while (attempt < MAX_GENERATION_ATTEMPTS) {
+    try {
+      const puzzle = await makePuzzle();
+      await insertPuzzleToDb({
+        puzzleId: puzzle.puzzleId,
+        puzzle: puzzle.puzzle,
+        keyPeople: puzzle.keyPeople,
+      });
+      return res.send("puzzle made!");
+    } catch (err) {
+      lastError = err;
+      attempt += 1;
+
+      if (err?.isExternalServiceError) {
+        console.warn(
+          `---> generatePuzzle attempt ${attempt} failed (external service): ${err.message}`
+        );
+      } else {
+        console.error(`---> generatePuzzle attempt ${attempt} failed:`, err);
+      }
+    }
   }
+
+  if (lastError?.isExternalServiceError) {
+    return res.status(502).json({ message: lastError.message });
+  }
+
+  return res.status(500).json({ message: "Unable to generate puzzle" });
 };
 
 /**
@@ -55,10 +76,11 @@ exports.generatePuzzle = async (req, res) => {
  * @param {object} req
  * @param {object} res
  */
-exports.listPuzzles = async (_req, res) => {
+exports.listPuzzles = async (req, res) => {
   try {
-    const summaries = await listPuzzlesFromDb();
-    return res.status(200).json(summaries);
+    const puzzles = await listPuzzlesFromDb();
+
+    return res.status(200).json({ puzzles });
   } catch (err) {
     console.error("---> listPuzzles: ", err);
     return res.status(500).json({ message: "Unable to list puzzles" });

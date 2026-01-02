@@ -1,9 +1,17 @@
 const { query } = require("../utilities/db");
 
 /**
+ * @typedef {Object} PuzzleRecord
+ * @property {number} puzzleId
+ * @property {unknown[]} puzzle
+ * @property {string[]} keyPeople
+ * @property {string|Date|null} createdAt
+ */
+
+/**
  * Map a database row to a puzzle object.
- * @param {*} row
- * @returns
+ * @param {{ puzzle_id: number, puzzle?: string|unknown[], key_people?: string[]|null, created_at?: string|Date|null }|null} row Database row.
+ * @returns {PuzzleRecord|null}
  */
 const mapPuzzleRow = (row) => {
   if (!row) {
@@ -33,7 +41,8 @@ const mapPuzzleRow = (row) => {
 
 /**
  * Insert or update a puzzle record.
- * @param {*} param0
+ * @param {{ puzzleId: number, puzzle?: unknown[], keyPeople?: string[] }} params Puzzle payload.
+ * @returns {Promise<void>}
  */
 const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
   const serializedPuzzle = JSON.stringify(puzzle ?? []);
@@ -60,34 +69,31 @@ const insertPuzzleToDb = async ({ puzzleId, puzzle, keyPeople }) => {
 };
 
 /**
- * List puzzles with their IDs and key people.
- * @returns
+ * List all puzzles ordered by most recent identifiers.
+ * @returns {Promise<PuzzleRecord[]>}
  */
 const listPuzzlesFromDb = async () => {
   const result = await query(
     `
-      SELECT puzzle_id, key_people
+      SELECT puzzle_id, puzzle, key_people, created_at
       FROM puzzles
-      ORDER BY created_at DESC
+      ORDER BY puzzle_id DESC
     `
   );
 
-  return result.rows.map((row) => ({
-    puzzleId: Number(row.puzzle_id),
-    keyPeople: Array.isArray(row.key_people) ? row.key_people : [],
-  }));
+  return result.rows.map((row) => mapPuzzleRow(row));
 };
 
 /**
  * Get the most recently created puzzle.
- * @returns
+ * @returns {Promise<PuzzleRecord|null>}
  */
 const getLatestPuzzleFromDb = async () => {
   const result = await query(
     `
       SELECT puzzle_id, puzzle, key_people, created_at
       FROM puzzles
-      ORDER BY created_at DESC
+      ORDER BY puzzle_id DESC
       LIMIT 1
     `
   );
@@ -101,8 +107,8 @@ const getLatestPuzzleFromDb = async () => {
 
 /**
  * Get a puzzle by its ID.
- * @param {*} puzzleId
- * @returns
+ * @param {number} puzzleId Puzzle identifier.
+ * @returns {Promise<PuzzleRecord|null>}
  */
 const getPuzzleByIdFromDb = async (puzzleId) => {
   const result = await query(
