@@ -1,26 +1,4 @@
-const axios = require("axios");
 require("dotenv").config();
-
-const API_KEY = process.env.TMDB_API_KEY;
-const TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV =
-  process.env.TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV;
-const TMDB_SEARCH_CREDITS_FRONT = process.env.TMDB_SEARCH_CREDITS_FRONT;
-const TMBD_SEARCH_CREDITS_BACK = process.env.TMBD_SEARCH_CREDITS_BACK;
-const TMDB_DISCOVER_MOVIE_BY_ACTOR = process.env.TMDB_DISCOVER_MOVIE_BY_ACTOR;
-
-const { parseNumberWithDefault } = require("./numberUtils");
-
-const LOWEST_YEAR = parseNumberWithDefault(process.env.LOWEST_YEAR, 1980);
-const MAX_RETRIES = parseNumberWithDefault(process.env.MAX_RETRIES, 2);
-const RETRY_DELAY_MS = parseNumberWithDefault(process.env.RETRY_DELAY_MS, 300);
-const CREDITS_CACHE_MAX = parseNumberWithDefault(
-  process.env.CREDITS_CACHE_MAX,
-  100
-);
-
-const CURRENT_YEAR = new Date().getFullYear();
-
-const { buildNormalizedMovie } = require("./puzzleFormatter");
 
 /**
  * @typedef {import("axios").AxiosResponse<any>} AxiosResponse
@@ -31,60 +9,50 @@ const { buildNormalizedMovie } = require("./puzzleFormatter");
  * @typedef {TMDBMovie & { keyPerson: TMDBPerson|null, cast: TMDBPerson[], directors: TMDBPerson[] }} PuzzleMovie
  */
 
+const { parseNumberWithDefault } = require("./numberUtils");
+const { buildNormalizedMovie } = require("./puzzleFormatter");
+const {
+  createExternalServiceError,
+  tmdbClient,
+  buildCreditsUrl,
+  buildDiscoverUrl: buildBaseDiscoverUrl,
+} = require("./tmdbClient");
+const { isEligibleMovie, LOWEST_YEAR } = require("./movieFilters");
+const { getRandomNumberUpToInt, getRandomActor } = require("./randomUtils");
+
+const CURRENT_YEAR = new Date().getFullYear();
+const MAX_RETRIES = parseNumberWithDefault(process.env.MAX_RETRIES, 2);
+const RETRY_DELAY_MS = parseNumberWithDefault(process.env.RETRY_DELAY_MS, 300);
+const CREDITS_CACHE_MAX = parseNumberWithDefault(
+  process.env.CREDITS_CACHE_MAX,
+  100
+);
+const SHORT_FILM_MIN_RUNTIME = parseNumberWithDefault(
+  process.env.SHORT_FILM_MIN_RUNTIME,
+  40
+);
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Extract a numeric year from a TMDB movie.
- * @param {TMDBMovie|undefined|null} movie
- * @returns {number|null}
- */
-const getReleaseYear = (movie) => {
-  const releaseDate = movie?.release_date;
-  if (typeof releaseDate !== "string" || releaseDate.length < 4) {
-    return null;
-  }
-
-  const year = Number.parseInt(releaseDate.slice(0, 4), 10);
-  return Number.isFinite(year) ? year : null;
-};
-
-/**
- * Determine whether a movie release year falls within configured bounds.
- * @param {TMDBMovie|undefined|null} movie
- * @returns {boolean}
- */
-const isWithinYearBounds = (movie) => {
-  const releaseYear = getReleaseYear(movie);
-  if (releaseYear === null) {
-    return false;
-  }
-
-  return releaseYear >= LOWEST_YEAR && releaseYear <= CURRENT_YEAR;
-};
 
 // In-memory cache for movie credits
 const creditsCache = new Map();
 
-// Build TMDB credits URL
-const buildCreditsUrl = (movieId) =>
-  `${TMDB_SEARCH_CREDITS_FRONT}${movieId}${TMBD_SEARCH_CREDITS_BACK}?api_key=${API_KEY}`;
-
 /**
- * Create a standardized external service error.
- * @param {string} message
- * @param {unknown} [cause]
- * @returns {ExternalServiceError}
+ * Build TMDB discover URL with parameters.
+ * @param {*} extraParams
+ * @returns
  */
-const createExternalServiceError = (message, cause) => {
-  const error = new Error(message);
-  error.name = "ExternalServiceError";
-  error.statusCode = 502;
-  error.isExternalServiceError = true;
-  if (cause) {
-    error.cause = cause;
-  }
-  return error;
-};
+const buildDiscoverUrl = (extraParams = {}) =>
+  buildBaseDiscoverUrl({
+    include_adult: "false",
+    region: "US",
+    language: "en-US",
+    page: "1",
+    sort_by: "revenue.desc",
+    "with_runtime.gte": String(SHORT_FILM_MIN_RUNTIME),
+    with_original_language: "en",
+    ...extraParams,
+  });
 
 /**
  * Fetch with retry logic for transient errors.
@@ -97,7 +65,7 @@ const fetchWithRetry = async (url, retries = MAX_RETRIES) => {
 
   while (attempt <= retries) {
     try {
-      return await axios.get(url);
+      return await tmdbClient.get(url);
     } catch (error) {
       const status = error?.response?.status;
 
@@ -148,48 +116,16 @@ const getCredits = async (movieId) => {
 };
 
 /**
- * Get a random integer from 0 up to (but not including) the specified number.
- * @param {number} num
- * @returns {number}
- */
-const getRandomNumberUpToInt = (num) => {
-  if (!Number.isFinite(num) || num <= 0) {
-    return 0;
-  }
-
-  return Math.floor(Math.random() * num);
-};
-
-/**
- * Get a random actor from the provided array.
- * @param {TMDBPerson[]|undefined|null} actors
- * @returns {TMDBPerson|null}
- */
-const getRandomActor = (actors) => {
-  if (!Array.isArray(actors) || actors.length === 0) {
-    return null;
-  }
-
-  return actors[getRandomNumberUpToInt(actors.length)] ?? null;
-};
-
-/**
  * Get a movie from a random year.
  * @param {number} year
  * @returns {Promise<TMDBMovie|null>}
  */
 const getMovieFromRandomYear = async (year) => {
-  const url = `${TMDB_DISCOVER_MOVIE_BY_YEAR_SORT_REV}${year}&api_key=${API_KEY}`;
+  const url = buildDiscoverUrl({ primary_release_year: year });
   const response = await fetchWithRetry(url);
   const results = response?.data?.results ?? [];
 
-  const filtered = results.filter(
-    (movie) =>
-      movie &&
-      Array.isArray(movie.genre_ids) &&
-      !movie.genre_ids.includes(99) &&
-      !movie.genre_ids.includes(10770)
-  );
+  const filtered = results.filter((movie) => isEligibleMovie(movie));
 
   if (filtered.length === 0) {
     return null;
@@ -253,18 +189,15 @@ const getMovieByActorID = async (actorId, movies) => {
   }
 
   const movieIds = new Set((movies || []).map((movie) => movie.id));
-  const url = `${TMDB_DISCOVER_MOVIE_BY_ACTOR}${actorId}&api_key=${API_KEY}`;
+  const url = buildDiscoverUrl({ with_cast: actorId });
   const response = await fetchWithRetry(url);
   const results = response?.data?.results ?? [];
 
-  const filtered = results.filter(
-    (movie) =>
-      movie &&
-      isWithinYearBounds(movie) &&
-      !movieIds.has(movie.id) &&
-      Array.isArray(movie.genre_ids) &&
-      !movie.genre_ids.includes(99) &&
-      !movie.genre_ids.includes(1077)
+  const filtered = results.filter((movie) =>
+    isEligibleMovie(movie, {
+      enforceYearBounds: true,
+      disallowedIds: movieIds,
+    })
   );
 
   if (filtered.length === 0) {
