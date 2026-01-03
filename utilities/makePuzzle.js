@@ -188,7 +188,7 @@ const getMovieFromRandomYear = async (year) => {
       movie &&
       Array.isArray(movie.genre_ids) &&
       !movie.genre_ids.includes(99) &&
-      !movie.genre_ids.includes(1077)
+      !movie.genre_ids.includes(10770)
   );
 
   if (filtered.length === 0) {
