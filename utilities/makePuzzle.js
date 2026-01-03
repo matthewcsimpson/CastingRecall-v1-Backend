@@ -39,8 +39,8 @@ const creditsCache = new Map();
 
 /**
  * Build TMDB discover URL with parameters.
- * @param {*} extraParams
- * @returns
+ * @param {Record<string, string|number|boolean>} extraParams
+ * @returns {string}
  */
 const buildDiscoverUrl = (extraParams = {}) =>
   buildBaseDiscoverUrl({
