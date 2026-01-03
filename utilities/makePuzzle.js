@@ -31,6 +31,11 @@ const SHORT_FILM_MIN_RUNTIME = parseNumberWithDefault(
   process.env.SHORT_FILM_MIN_RUNTIME,
   40
 );
+const MIN_VOTE_COUNT = parseNumberWithDefault(process.env.MIN_VOTE_COUNT, 350);
+const MIN_VOTE_AVERAGE = parseNumberWithDefault(
+  process.env.MIN_VOTE_AVERAGE,
+  6
+);
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -48,9 +53,11 @@ const buildDiscoverUrl = (extraParams = {}) =>
     region: "US",
     language: "en-US",
     page: "1",
-    sort_by: "revenue.desc",
+    sort_by: "popularity.desc",
     "with_runtime.gte": String(SHORT_FILM_MIN_RUNTIME),
     with_original_language: "en",
+    "vote_count.gte": String(MIN_VOTE_COUNT),
+    "vote_average.gte": String(MIN_VOTE_AVERAGE),
     ...extraParams,
   });
 
